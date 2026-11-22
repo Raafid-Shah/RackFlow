@@ -1,0 +1,10 @@
+item_id,brand_name,salt_compound,strength_form,category,tags,unit_id,row,col,mrp_inr,find_time_sec,observed_at,last_verified,status,notes
+S-001,Fevarex 650,Paracetamol,650mg Tablet Strip,Fever & Pain,"headache, bukhar",W1,2,1,33.76,,,2026-11-21,OK,
+S-002,Fevarex 500,Paracetamol,500mg Tablet Strip,Fever & Pain,,W1,2,1,28,,,2026-11-21,OK,
+S-003,Acidoff,Omeprazole,20mg Capsule,Acidity,"gas, heartburn",W1,1,3,60,,,2026-11-21,OK,
+S-004,Acidoff,Omeprazole,20mg Capsule,Acidity,,D1,1,2,60,,,2026-11-10,OK,second spot
+S-005,Zincora Plus,Zinc Sulphate,Tablet,Vitamins,,F1,2,1,,,,2026-11-21,OK,
+S-006,Coughease,Dextromethorphan,100ml Syrup,Cough,,W1,4,3,85,,,2026-11-21,OK,
+S-007,Newstock Tonic,,200ml Bottle,Tonic,,UNASSIGNED,,,45,,,,UNASSIGNED,
+S-008,Neighbor Left,,Tablet,Misc,,W1,2,2,10,,,2026-11-21,OK,
+S-009,Neighbor Right,,Tablet,Misc,,W1,2,2,10,,,2026-11-21,OK,

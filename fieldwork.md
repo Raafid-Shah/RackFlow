@@ -4,8 +4,8 @@
 - **Place:** [Hope Pharmacy, Batamaloo Srinagar]
 - **Date:** [21 November 2026]
 - **Photos:**
-  - ![Photo1 — 9:30PM](./photos/photo1.jpg)
-  - ![Photo2 — 10:30PM](./photos/photo2.jpg)
+  - ![Image1 — 9:30PM](./photos/Image1.jpg)
+  - ![Image2 — 10:30PM](./photos/Image2.jpg)
 
 ## 2. Conversation
 - **Name:** [Sajad]
