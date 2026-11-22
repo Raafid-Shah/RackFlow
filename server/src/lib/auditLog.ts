@@ -10,6 +10,7 @@ export type AuditAction =
   | 'SWAP_CONTAINERS'
   | 'SHIFT_ROW'
   | 'UPDATE_LAYOUT'
+  | 'CHANGE_PIN'
   | 'IMPORT_CSV'
   | 'UNDO_RESTORE';
 

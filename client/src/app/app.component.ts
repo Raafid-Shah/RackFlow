@@ -301,11 +301,12 @@ export class AppComponent {
 
   async submitPin(event: Event): Promise<void> {
     event.preventDefault();
-    const ok = await this.store.unlockModerator(this.pinInput());
-    if (ok) {
+    this.pinError.set(null);
+    const res = await this.store.unlockModerator(this.pinInput());
+    if (res.ok) {
       this.pinModalOpen.set(false);
     } else {
-      this.pinError.set('Incorrect PIN. Check data/org_config.json.');
+      this.pinError.set(res.error ?? 'Incorrect PIN.');
     }
   }
 }

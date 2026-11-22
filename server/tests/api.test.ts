@@ -32,10 +32,7 @@ async function api(
     return { status: res.status, body: json };
 }
 
-const MOD_HEADERS = {
-    'x-rackflow-pin': '1234',
-    'x-rackflow-staff': 'Senior Chemist',
-};
+let MOD_HEADERS: Record<string, string> = {};
 
 beforeAll(async () => {
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'rackflow-api-test-'));
@@ -81,13 +78,18 @@ beforeAll(async () => {
             staffPresets: ['Counter Staff', 'Floor Helper 1'],
         }),
     );
-
     const app = createApp({ dataDir: tempDir });
     server = http.createServer(app);
     await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
     const addr = server.address();
     if (!addr || typeof addr === 'string') throw new Error('Failed to bind test server');
     baseUrl = `http://127.0.0.1:${addr.port}`;
+    const authRes = await api('POST', '/api/auth/verify', { pin: '1234' });
+    expect(authRes.status).toBe(200);
+    MOD_HEADERS = {
+        Authorization: `Bearer ${authRes.body.token as string}`,
+        'x-rackflow-staff': 'Senior Chemist',
+    };
 });
 
 afterAll(async () => {
@@ -106,7 +108,8 @@ describe('Stage 5 API — Read, Search, Route & RBAC', () => {
         const cfg = await api('GET', '/api/config');
         expect(cfg.status).toBe(200);
         expect(cfg.body.shopName).toBe('Test Pharmacy');
-        expect(cfg.body.pinHint).toBe('1234');
+        expect(cfg.body.usingDefaultPin).toBe(true);
+        expect(cfg.body.pinHint).toBeNull();
     });
 
     it('returns enriched search hits with spatial landmarks and split-location badges', async () => {
@@ -317,3 +320,75 @@ describe('Stage 5 API — Staff Flag, Atomic Mutations, Import & Byte-Exact Undo
         });
     });
 });
+
+describe('Moderator Auth Security — scrypt, Bearer Sessions, Lockout & PIN Rotation', () => {
+    it('rejects raw x-rackflow-pin on mutation routes and requires a Bearer token', async () => {
+        const rawHeaderRes = await api(
+            'POST',
+            '/api/mutations/move',
+            { itemIds: ['RF01'], target: { unit_id: 'D1', row: 1, col: 1 } },
+            { 'x-rackflow-pin': '1234' },
+        );
+        expect(rawHeaderRes.status).toBe(401);
+    });
+
+    it('rotates PIN to a salted scrypt hash, revokes prior tokens, and keeps caller authenticated', async () => {
+        const otherLogin = await api('POST', '/api/auth/verify', { pin: '1234' });
+        expect(otherLogin.status).toBe(200);
+        const otherHeaders = { Authorization: `Bearer ${otherLogin.body.token as string}` };
+
+        const weakRes = await api(
+            'POST',
+            '/api/auth/change-pin',
+            { currentPin: '1234', newPin: '123456' },
+            MOD_HEADERS,
+        );
+        expect(weakRes.status).toBe(400);
+
+        const changeRes = await api(
+            'POST',
+            '/api/auth/change-pin',
+            { currentPin: '1234', newPin: '849201' },
+            MOD_HEADERS,
+        );
+        expect(changeRes.status).toBe(200);
+        expect(typeof changeRes.body.token).toBe('string');
+
+        const revokedRes = await api(
+            'POST',
+            '/api/auth/change-pin',
+            { currentPin: '849201', newPin: '739104' },
+            otherHeaders,
+        );
+        expect(revokedRes.status).toBe(401);
+
+        const freshHeaders = { Authorization: `Bearer ${changeRes.body.token as string}` };
+        const cfgRes = await api('GET', '/api/config');
+        expect(cfgRes.body.usingDefaultPin).toBe(false);
+        expect(cfgRes.body.pinHint).toBeNull();
+
+        const logoutRes = await api('POST', '/api/auth/logout', {}, freshHeaders);
+        expect(logoutRes.status).toBe(200);
+
+        const afterLogout = await api(
+            'POST',
+            '/api/auth/change-pin',
+            { currentPin: '849201', newPin: '739104' },
+            freshHeaders,
+        );
+        expect(afterLogout.status).toBe(401);
+    });
+
+    it('locks out an IP with 429 after 5 failed PIN attempts', async () => {
+        let lastStatus = 0;
+        for (let i = 0; i < 5; i++) {
+            const res = await api('POST', '/api/auth/verify', { pin: '000000' });
+            lastStatus = res.status;
+        }
+        expect(lastStatus).toBe(429);
+
+        const blocked = await api('POST', '/api/auth/verify', { pin: '849201' });
+        expect(blocked.status).toBe(429);
+    });
+});
+

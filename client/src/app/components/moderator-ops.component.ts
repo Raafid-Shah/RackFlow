@@ -1008,6 +1008,62 @@ interface UnitOccupancy {
           </section>
         </div>
       }
+      <section class="mb-4 rounded-xl border border-line bg-surface p-4">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 class="flex items-center gap-1.5 text-sm font-bold text-fg">
+                <lucide-icon [img]="LockIcon" [size]="15" class="text-amber" />
+                Moderator PIN &amp; Session Security
+              </h3>
+              <p class="mt-0.5 text-xs text-muted">
+                PIN is stored as a salted <span class="font-mono">scrypt</span> hash in <span class="font-mono">data/org_config.json</span>. Changing it immediately revokes every other unlocked phone or browser.
+              </p>
+            </div>
+            @if (store.config()?.usingDefaultPin) {
+              <span class="rf-pill-warn rounded px-2 py-1 font-mono text-[11px] font-bold">
+                Default PIN active — change recommended
+              </span>
+            }
+          </div>
+
+          <form (submit)="submitPinChange($event)" class="mt-3 grid gap-2.5 sm:grid-cols-4">
+            <input
+              type="password"
+              autocomplete="current-password"
+              [value]="curPinInput()"
+              (input)="curPinInput.set(asStr($event))"
+              placeholder="Current PIN"
+              class="rounded-lg border border-line bg-bg px-3 py-2 font-mono text-xs text-fg focus:border-amber focus:outline-none"
+            />
+            <input
+              type="password"
+              autocomplete="new-password"
+              [value]="nextPinInput()"
+              (input)="nextPinInput.set(asStr($event))"
+              placeholder="New PIN (6+ chars)"
+              class="rounded-lg border border-line bg-bg px-3 py-2 font-mono text-xs text-fg focus:border-amber focus:outline-none"
+            />
+            <input
+              type="password"
+              autocomplete="new-password"
+              [value]="confirmPinInput()"
+              (input)="confirmPinInput.set(asStr($event))"
+              placeholder="Confirm new PIN"
+              class="rounded-lg border border-line bg-bg px-3 py-2 font-mono text-xs text-fg focus:border-amber focus:outline-none"
+            />
+            <button
+              type="submit"
+              [disabled]="!curPinInput() || !nextPinInput() || store.mutating()"
+              class="rounded-lg bg-amber px-3 py-2 text-xs font-bold text-bg hover:opacity-90 disabled:opacity-40"
+            >
+              Update PIN
+            </button>
+          </form>
+
+          @if (pinChangeError()) {
+            <p class="mt-2 text-xs text-warn">{{ pinChangeError() }}</p>
+          }
+        </section>
 
       @if (subTab() === 'audit') {
         <section class="rounded-xl border border-line bg-surface p-4">
@@ -1131,7 +1187,10 @@ export class ModeratorOpsComponent implements OnInit {
   readonly UploadIcon = Upload;
   readonly UndoIcon = Undo2;
   readonly LockIcon = Lock;
-
+  readonly curPinInput = signal<string>('');
+  readonly nextPinInput = signal<string>('');
+  readonly confirmPinInput = signal<string>('');
+  readonly pinChangeError = signal<string | null>(null);
   readonly slowThreshold = computed(
     () => this.store.config()?.thresholds?.['SLOW_FIND_THRESHOLD_SEC'] ?? 15,
   );
@@ -1453,6 +1512,34 @@ export class ModeratorOpsComponent implements OnInit {
       toCol: this.shiftMode() === 'promote' ? this.shiftToCol() : undefined,
       mode: this.shiftMode(),
     });
+  }
+
+  async submitPinChange(event: Event): Promise<void> {
+    event.preventDefault();
+    this.pinChangeError.set(null);
+    if (!this.ensureUnlocked()) return;
+
+    const current = this.curPinInput();
+    const next = this.nextPinInput();
+    const confirm = this.confirmPinInput();
+
+    if (next.length < 6) {
+      this.pinChangeError.set('New PIN must be at least 6 characters.');
+      return;
+    }
+    if (next !== confirm) {
+      this.pinChangeError.set('New PIN and confirmation do not match.');
+      return;
+    }
+
+    const res = await this.store.changePin(current, next);
+    if (res.ok) {
+      this.curPinInput.set('');
+      this.nextPinInput.set('');
+      this.confirmPinInput.set('');
+    } else {
+      this.pinChangeError.set(res.error ?? 'Could not change PIN.');
+    }
   }
 
   async submitCreate(event: Event): Promise<void> {

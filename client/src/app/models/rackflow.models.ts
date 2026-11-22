@@ -102,6 +102,7 @@ export interface PublicOrgConfig {
   showPinHint: boolean;
   pinHint: string | null;
   staffPresets: string[];
+  usingDefaultPin?: boolean;
   thresholds: Record<string, number>;
 }
 

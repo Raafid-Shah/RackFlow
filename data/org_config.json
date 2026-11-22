@@ -1,6 +1,11 @@
 {
   "shopName": "[Hope Pharmacy]",
-  "moderatorPin": "1234",
   "showPinHint": true,
-  "staffPresets": ["Counter Staff", "Floor Helper 1", "Floor Helper 2"]
+  "staffPresets": [
+    "Counter Staff",
+    "Floor Helper 1",
+    "Floor Helper 2"
+  ],
+  "moderatorPinHash": "scrypt$a5824b7414147395cbb30278d164c60e$6806aa43264485fcef5a5a9c6f4ce7f256ae34591e53f4f0a44ff37ec6415417810c1c353cfa5aa1f4ff69c694e035c437bcdfa392dea772a7a1d83d4b5ffdb6",
+  "pinUpdatedAt": "2026-11-22T15:37:29.068Z"
 }

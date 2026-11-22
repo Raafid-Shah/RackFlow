@@ -1,7 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { PIN_STORAGE_KEY, STAFF_STORAGE_KEY } from '../interceptors/auth.interceptor';
 import {
   AuditEntry,
   CellCoord,
@@ -18,9 +17,18 @@ import {
   Warning,
 } from '../models/rackflow.models';
 
+export const TOKEN_STORAGE_KEY = 'rackflow-mod-token';
+export const STAFF_STORAGE_KEY = 'rackflow-staff';
+export const SESSION_EXPIRED_EVENT = 'rackflow:session-expired';
+
 export interface ToastMessage {
   kind: 'ok' | 'warn' | 'info';
   text: string;
+}
+
+export interface AuthActionResult {
+  ok: boolean;
+  error?: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -57,7 +65,8 @@ export class RackFlowStore {
 
   readonly theme = signal<'dark' | 'light'>(this.readInitialTheme());
   readonly staffName = signal<string>(this.readInitialStaff());
-  readonly moderatorUnlocked = signal<boolean>(false);
+  readonly sessionToken = signal<string | null>(this.readInitialToken());
+  readonly moderatorUnlocked = computed(() => this.sessionToken() !== null);
   readonly toast = signal<ToastMessage | null>(null);
 
   readonly totalCartUnits = computed(() =>
@@ -92,6 +101,11 @@ export class RackFlowStore {
   );
 
   constructor() {
+    window.addEventListener(SESSION_EXPIRED_EVENT, () => {
+      if (this.sessionToken() !== null) {
+        this.clearLocalSession('Moderator session expired or revoked. Please unlock again.');
+      }
+    });
     this.init();
   }
 
@@ -111,6 +125,14 @@ export class RackFlowStore {
     }
   }
 
+  private readInitialToken(): string | null {
+    try {
+      return sessionStorage.getItem(TOKEN_STORAGE_KEY);
+    } catch {
+      return null;
+    }
+  }
+
   private extractError(err: unknown, fallback: string): string {
     const msg = (err as { error?: { error?: string } } | null)?.error?.error;
     return typeof msg === 'string' && msg.trim() ? msg : fallback;
@@ -126,19 +148,29 @@ export class RackFlowStore {
   }
 
   private async restoreModeratorSession(): Promise<void> {
+    const token = this.sessionToken();
+    if (!token) return;
     try {
-      const savedPin = sessionStorage.getItem(PIN_STORAGE_KEY);
-      if (!savedPin) return;
       const res = await firstValueFrom(
-        this.http.post<{ ok: boolean }>('/api/auth/verify', { pin: savedPin }),
+        this.http.get<{ authenticated: boolean }>('/api/auth/session'),
       );
-      if (res.ok) this.moderatorUnlocked.set(true);
-    } catch {
-      try {
-        sessionStorage.removeItem(PIN_STORAGE_KEY);
-      } catch {}
-      this.moderatorUnlocked.set(false);
+      if (!res.authenticated) {
+        this.clearLocalSession();
+      }
+    } catch (err) {
+      const status = (err as { status?: number } | null)?.status;
+      if (status === 401) {
+        this.clearLocalSession();
+      }
     }
+  }
+
+  clearLocalSession(reason?: string): void {
+    try {
+      sessionStorage.removeItem(TOKEN_STORAGE_KEY);
+    } catch {}
+    this.sessionToken.set(null);
+    if (reason) this.notify('warn', reason);
   }
 
   async loadConfig(): Promise<void> {
@@ -181,7 +213,9 @@ export class RackFlowStore {
     try {
       const [analyticsRes, auditRes] = await Promise.all([
         firstValueFrom(this.http.get<ShopAnalyticsResponse>('/api/analytics')),
-        firstValueFrom(this.http.get<{ entries: AuditEntry[] }>('/api/audit', { params: { limit: 60 } })),
+        firstValueFrom(
+          this.http.get<{ entries: AuditEntry[] }>('/api/audit', { params: { limit: 60 } }),
+        ),
       ]);
       this.analytics.set(analyticsRes);
       this.auditEntries.set(auditRes.entries);
@@ -467,31 +501,65 @@ export class RackFlowStore {
     }
   }
 
-  async unlockModerator(pin: string): Promise<boolean> {
+  async unlockModerator(pin: string): Promise<AuthActionResult> {
     try {
       const res = await firstValueFrom(
-        this.http.post<{ ok: boolean }>('/api/auth/verify', { pin: pin.trim() }),
+        this.http.post<{ ok: boolean; token: string; expiresAt: string }>('/api/auth/verify', {
+          pin: pin.trim(),
+        }),
       );
-      if (res.ok) {
-        try {
-          sessionStorage.setItem(PIN_STORAGE_KEY, pin.trim());
-        } catch {}
-        this.moderatorUnlocked.set(true);
-        this.notify('ok', 'Moderator mode unlocked');
-        return true;
-      }
-      return false;
-    } catch {
-      return false;
+      try {
+        sessionStorage.setItem(TOKEN_STORAGE_KEY, res.token);
+      } catch {}
+      this.sessionToken.set(res.token);
+      this.notify('ok', 'Moderator mode unlocked (8h session).');
+      await this.refreshOpsData();
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: this.extractError(err, 'Incorrect PIN.') };
     }
   }
 
-  lockModerator(): void {
+  async lockModerator(): Promise<void> {
+    const token = this.sessionToken();
+    this.clearLocalSession();
+    if (token) {
+      try {
+        await firstValueFrom(
+          this.http.post(
+            '/api/auth/logout',
+            {},
+            { headers: { Authorization: `Bearer ${token}` } },
+          ),
+        );
+      } catch {}
+    }
+    this.notify('info', 'Moderator session locked and revoked.');
+  }
+
+  async changePin(currentPin: string, newPin: string): Promise<AuthActionResult> {
+    this.mutating.set(true);
     try {
-      sessionStorage.removeItem(PIN_STORAGE_KEY);
-    } catch {}
-    this.moderatorUnlocked.set(false);
-    this.notify('info', 'Moderator mode locked');
+      const res = await firstValueFrom(
+        this.http.post<{ ok: boolean; token: string; expiresAt: string }>('/api/auth/change-pin', {
+          currentPin,
+          newPin,
+        }),
+      );
+      try {
+        sessionStorage.setItem(TOKEN_STORAGE_KEY, res.token);
+      } catch {}
+      this.sessionToken.set(res.token);
+      await Promise.all([this.loadConfig(), this.refreshOpsData()]);
+      this.notify('ok', 'Moderator PIN updated. All other sessions revoked.');
+      return { ok: true };
+    } catch (err) {
+      const msg = this.extractError(err, 'Could not update PIN.');
+      this.notify('warn', msg);
+      return { ok: false, error: msg };
+    } finally {
+      this.mutating.set(false);
+    }
   }
 
   async undoLastChange(): Promise<void> {

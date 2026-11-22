@@ -307,7 +307,15 @@ export class DataStore {
     fs.mkdirSync(this.dataDir, { recursive: true });
     writeFileAtomic(this.layoutPath, JSON.stringify({ units }, null, 2) + '\n');
   }
-
+  
+  writeOrgConfig(config: Record<string, unknown>): void {
+    fs.mkdirSync(this.dataDir, { recursive: true });
+    writeFileAtomic(
+      path.join(this.dataDir, 'org_config.json'),
+      JSON.stringify(config, null, 2) + '\n',
+    );
+  }
+  
   restoreLatestBackup(): string | null {
     const all = this.listBackups();
     if (all.length === 0) return null;

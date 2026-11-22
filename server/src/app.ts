@@ -1,7 +1,7 @@
 import express, { Express, NextFunction, Request, Response } from 'express';
-import fs from 'fs';
+import fs from 'node:fs';
 import os from 'os';
-import path from 'path';
+import path from 'node:path';
 import { THRESHOLDS } from './config/thresholds';
 import { computeAnalytics, isSlowFind, isStaleVerified } from './lib/analytics';
 import { AuditLog } from './lib/auditLog';
@@ -33,6 +33,12 @@ import {
   isMapped,
 } from './lib/spatialCues';
 import { PickLine } from './lib/types';
+import {
+  AuthManager,
+  hashPin,
+  validateNewPinStrength,
+  verifyPinAgainstConfig,
+} from './lib/auth';
 
 export interface AppOptions {
   dataDir?: string;
@@ -44,6 +50,14 @@ interface CachedState {
   data: LoadedData;
   searchIndex: SearchIndex;
   containers: ContainerIndex;
+}
+interface RawOrgConfig {
+  shopName?: string;
+  staffPresets?: string[];
+  moderatorPin?: string;
+  moderatorPinHash?: string;
+  pinHint?: string | null;
+  [key: string]: unknown;
 }
 
 export function getLanUrls(port: number): string[] {
@@ -75,7 +89,14 @@ export function createApp(options: AppOptions = {}): Express {
 
   const store = new DataStore(dataDir);
   const audit = new AuditLog(dataDir);
-  const requireModerator = createModeratorGuard(dataDir);
+  const requireModerator = (req: Request, res: Response, next: NextFunction): void => {
+    const session = auth.validateToken(readBearerToken(req));
+    if (!session) {
+      res.status(401).json({ error: 'Moderator session required. Please unlock with your PIN.' });
+      return;
+    }
+    next();
+  };
 
   let cache: CachedState | null = null;
 
@@ -116,20 +137,123 @@ export function createApp(options: AppOptions = {}): Express {
   });
 
   app.get('/api/config', (_req: Request, res: Response) => {
-    const cfg = loadOrgConfig(dataDir);
+    const raw = readRawOrgConfig();
+    const usingDefaultPin = !raw.moderatorPinHash;
     res.json({
-      ...toPublicOrgConfig(cfg),
+      shopName: raw.shopName ?? 'RackFlow Pharmacy',
+      staffPresets: raw.staffPresets ?? ['Counter Staff'],
+      usingDefaultPin,
+      pinHint: usingDefaultPin ? (raw.pinHint ?? null) : null,
       thresholds: THRESHOLDS,
     });
   });
 
   app.post('/api/auth/verify', (req: Request, res: Response) => {
-    const pin = typeof req.body?.pin === 'string' ? req.body.pin : undefined;
-    if (!verifyModeratorPin(pin, dataDir)) {
-      res.status(401).json({ ok: false, error: 'Incorrect Moderator PIN' });
+    const ip = readClientIp(req);
+    const lock = auth.checkLockout(ip);
+    if (lock.locked) {
+      res.setHeader('Retry-After', String(lock.retryAfterSec));
+      res.status(429).json({
+        error: `Too many failed attempts. Try again in ${lock.retryAfterSec}s.`,
+        retryAfterSec: lock.retryAfterSec,
+      });
       return;
     }
-    res.json({ ok: true, role: 'moderator' });
+
+    const pin = typeof req.body?.pin === 'string' ? req.body.pin : '';
+    const raw = readRawOrgConfig();
+
+    if (!verifyPinAgainstConfig(pin, raw)) {
+      const fail = auth.recordFailure(ip);
+      if (fail.locked) {
+        res.setHeader('Retry-After', String(fail.retryAfterSec));
+        res.status(429).json({
+          error: `Too many failed attempts. Locked for ${Math.ceil(fail.retryAfterSec / 60)} min.`,
+          retryAfterSec: fail.retryAfterSec,
+        });
+        return;
+      }
+      res.status(401).json({
+        error: `Incorrect PIN. ${fail.remaining} attempt(s) remaining before lockout.`,
+        remainingAttempts: fail.remaining,
+      });
+      return;
+    }
+
+    auth.clearFailures(ip);
+    const session = auth.createSession(readActorName(req));
+    res.json({
+      ok: true,
+      token: session.token,
+      expiresAt: new Date(session.expiresAt).toISOString(),
+      usingDefaultPin: !raw.moderatorPinHash,
+    });
+  });
+
+  app.post('/api/auth/logout', (req: Request, res: Response) => {
+    auth.revokeToken(readBearerToken(req));
+    res.json({ ok: true });
+  });
+
+  app.post('/api/auth/change-pin', requireModerator, (req: Request, res: Response) => {
+    const ip = readClientIp(req);
+    const lock = auth.checkLockout(ip);
+    if (lock.locked) {
+      res.setHeader('Retry-After', String(lock.retryAfterSec));
+      res.status(429).json({
+        error: `Locked due to failed attempts. Try again in ${lock.retryAfterSec}s.`,
+        retryAfterSec: lock.retryAfterSec,
+      });
+      return;
+    }
+
+    const currentPin = typeof req.body?.currentPin === 'string' ? req.body.currentPin : '';
+    const newPin = typeof req.body?.newPin === 'string' ? req.body.newPin : '';
+    const raw = readRawOrgConfig();
+
+    if (!verifyPinAgainstConfig(currentPin, raw)) {
+      const fail = auth.recordFailure(ip);
+      res.status(fail.locked ? 429 : 401).json({
+        error: fail.locked
+          ? `Too many failed attempts. Try again in ${fail.retryAfterSec}s.`
+          : `Current PIN is incorrect (${fail.remaining} attempt(s) left).`,
+      });
+      return;
+    }
+
+    const strengthError = validateNewPinStrength(newPin, currentPin);
+    if (strengthError) {
+      res.status(400).json({ error: strengthError });
+      return;
+    }
+
+    auth.clearFailures(ip);
+
+    const nextConfig: Record<string, unknown> = {
+      ...raw,
+      moderatorPinHash: hashPin(newPin),
+      pinUpdatedAt: new Date().toISOString(),
+    };
+    delete nextConfig['moderatorPin'];
+    delete nextConfig['pinHint'];
+
+    store.writeOrgConfig(nextConfig);
+
+    auth.revokeAllSessions();
+    const freshSession = auth.createSession(readActorName(req));
+
+    audit.append({
+      actor: readActorName(req),
+      role: 'moderator',
+      action: 'CHANGE_PIN',
+      summary: 'Rotated Moderator PIN (scrypt hash saved, all prior sessions revoked)',
+    });
+
+    res.json({
+      ok: true,
+      token: freshSession.token,
+      expiresAt: new Date(freshSession.expiresAt).toISOString(),
+    });
   });
 
   app.get('/api/inventory', (_req: Request, res: Response) => {
@@ -141,6 +265,13 @@ export function createApp(options: AppOptions = {}): Express {
       totalRows: state.data.totalRows,
       quarantined: state.data.quarantined,
       backupCount: store.listBackups().length,
+    });
+  });
+  app.get('/api/auth/session', (req: Request, res: Response) => {
+    const session = auth.validateToken(readBearerToken(req));
+    res.json({
+      authenticated: session !== null,
+      expiresAt: session ? new Date(session.expiresAt).toISOString() : null,
     });
   });
 
@@ -221,6 +352,29 @@ export function createApp(options: AppOptions = {}): Express {
       layout: next.data.layout,
     });
   });
+
+  const auth = new AuthManager();
+
+  const readRawOrgConfig = (): RawOrgConfig => {
+    const configPath = path.join(dataDir, 'org_config.json');
+    if (!fs.existsSync(configPath)) return {};
+    try {
+      return JSON.parse(fs.readFileSync(configPath, 'utf8')) as RawOrgConfig;
+    } catch {
+      return {};
+    }
+  };
+
+  function readClientIp(req: Request): string {
+    return req.ip || req.socket.remoteAddress || 'unknown';
+  }
+
+  function readBearerToken(req: Request): string | undefined {
+    const header = req.header('authorization') ?? '';
+    if (!header.toLowerCase().startsWith('bearer ')) return undefined;
+    const token = header.slice(7).trim();
+    return token.length > 0 ? token : undefined;
+  }
 
   // --- Moderator Endpoints (PIN-gated) ---
 
