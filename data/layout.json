@@ -1,0 +1,25 @@
+{
+  "units": [
+    {
+      "unit_id": "D1",
+      "name": "Counter Drawers",
+      "walk_order": 100,
+      "anchor_rule": "Row 1 = Top Drawer | Col 1 = Leftmost",
+      "row_widths": [4, 4]
+    },
+    {
+      "unit_id": "W1",
+      "name": "Left Wall Rack",
+      "walk_order": 200,
+      "anchor_rule": "Row 1 = Top Shelf | Col 1 = Closest to Counter",
+      "row_widths": [5, 7, 7, 3]
+    },
+    {
+      "unit_id": "F1",
+      "name": "Corner Fridge",
+      "walk_order": 300,
+      "anchor_rule": "Row 1 = Top Shelf | Single Column",
+      "row_widths": [1, 1, 1]
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "name": "rackflow",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Offline-first LAN shelf-location finder for chemists and small stores",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "setup": "npm install && npm --prefix server install && npm --prefix client install",
+    "dev": "concurrently -n server,client -c blue,magenta \"npm --prefix server run dev\" \"npm --prefix client run dev\"",
+    "build": "npm --prefix client run build && npm --prefix server run build",
+    "start": "npm --prefix server run start",
+    "test": "npm --prefix server test"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}

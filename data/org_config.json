@@ -1,0 +1,6 @@
+{
+  "shopName": "[Hope Pharmacy]",
+  "moderatorPin": "1234",
+  "showPinHint": true,
+  "staffPresets": ["Counter Staff", "Floor Helper 1", "Floor Helper 2"]
+}

@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.angular/
+*.log
+.DS_Store
+data/data.csv.tmp
+data/backups/
+data/audit_log.jsonl
