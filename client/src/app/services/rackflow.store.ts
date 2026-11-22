@@ -3,7 +3,9 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { PIN_STORAGE_KEY, STAFF_STORAGE_KEY } from '../interceptors/auth.interceptor';
 import {
+  AuditEntry,
   CellCoord,
+  ImportCsvResponse,
   InventoryResponse,
   MedicineItem,
   PickLine,
@@ -11,6 +13,7 @@ import {
   PublicOrgConfig,
   SearchHit,
   SearchResponse,
+  ShopAnalyticsResponse,
   UnitLayout,
   Warning,
 } from '../models/rackflow.models';
@@ -34,6 +37,11 @@ export class RackFlowStore {
   readonly backupCount = signal<number>(0);
   readonly loadingInventory = signal<boolean>(true);
   readonly serverError = signal<string | null>(null);
+
+  readonly analytics = signal<ShopAnalyticsResponse | null>(null);
+  readonly auditEntries = signal<AuditEntry[]>([]);
+  readonly loadingOps = signal<boolean>(false);
+  readonly mutating = signal<boolean>(false);
 
   readonly query = signal<string>('');
   readonly searching = signal<boolean>(false);
@@ -103,8 +111,18 @@ export class RackFlowStore {
     }
   }
 
+  private extractError(err: unknown, fallback: string): string {
+    const msg = (err as { error?: { error?: string } } | null)?.error?.error;
+    return typeof msg === 'string' && msg.trim() ? msg : fallback;
+  }
+
   async init(): Promise<void> {
-    await Promise.all([this.loadConfig(), this.refreshInventory(), this.restoreModeratorSession()]);
+    await Promise.all([
+      this.loadConfig(),
+      this.refreshInventory(),
+      this.refreshOpsData(),
+      this.restoreModeratorSession(),
+    ]);
   }
 
   private async restoreModeratorSession(): Promise<void> {
@@ -118,9 +136,7 @@ export class RackFlowStore {
     } catch {
       try {
         sessionStorage.removeItem(PIN_STORAGE_KEY);
-      } catch {
-        // ignore
-      }
+      } catch {}
       this.moderatorUnlocked.set(false);
     }
   }
@@ -158,6 +174,27 @@ export class RackFlowStore {
     } finally {
       this.loadingInventory.set(false);
     }
+  }
+
+  async refreshOpsData(): Promise<void> {
+    this.loadingOps.set(true);
+    try {
+      const [analyticsRes, auditRes] = await Promise.all([
+        firstValueFrom(this.http.get<ShopAnalyticsResponse>('/api/analytics')),
+        firstValueFrom(this.http.get<{ entries: AuditEntry[] }>('/api/audit', { params: { limit: 60 } })),
+      ]);
+      this.analytics.set(analyticsRes);
+      this.auditEntries.set(auditRes.entries);
+      this.backupCount.set(analyticsRes.backupCount);
+    } catch {
+      this.notify('warn', 'Could not load analytics & audit feed.');
+    } finally {
+      this.loadingOps.set(false);
+    }
+  }
+
+  private async syncAll(): Promise<void> {
+    await Promise.all([this.refreshInventory(), this.refreshOpsData()]);
   }
 
   setQuery(raw: string): void {
@@ -270,10 +307,146 @@ export class RackFlowStore {
       await firstValueFrom(
         this.http.post(`/api/items/${encodeURIComponent(item.item_id)}/flag`, { note }),
       );
-      await this.refreshInventory();
+      await this.syncAll();
       this.notify('warn', `Flagged "${item.brand_name}" as Not Here for Moderator review.`);
-    } catch {
-      this.notify('warn', 'Failed to flag item.');
+    } catch (err) {
+      this.notify('warn', this.extractError(err, 'Failed to flag item.'));
+    }
+  }
+
+  async verifyItem(item: MedicineItem): Promise<boolean> {
+    this.mutating.set(true);
+    try {
+      await firstValueFrom(
+        this.http.patch(`/api/items/${encodeURIComponent(item.item_id)}`, {
+          verifyNow: true,
+          status: 'OK',
+        }),
+      );
+      await this.syncAll();
+      this.notify('ok', `Verified "${item.brand_name}" on shelf.`);
+      return true;
+    } catch (err) {
+      this.notify('warn', this.extractError(err, 'Verification failed.'));
+      return false;
+    } finally {
+      this.mutating.set(false);
+    }
+  }
+
+  async createMedicine(payload: {
+    brand_name: string;
+    salt_compound?: string;
+    unit_id?: string;
+    row?: number | null;
+    col?: number | null;
+    mrp_inr?: number | null;
+  }): Promise<boolean> {
+    this.mutating.set(true);
+    try {
+      const res = await firstValueFrom(
+        this.http.post<{ item: MedicineItem }>('/api/items', payload),
+      );
+      await this.syncAll();
+      this.notify('ok', `Added "${res.item.brand_name}" (${res.item.item_id})`);
+      return true;
+    } catch (err) {
+      this.notify('warn', this.extractError(err, 'Could not add medicine.'));
+      return false;
+    } finally {
+      this.mutating.set(false);
+    }
+  }
+
+  async moveItems(
+    itemIds: string[],
+    target: { unit_id: string; row: number | null; col: number | null },
+  ): Promise<boolean> {
+    this.mutating.set(true);
+    try {
+      await firstValueFrom(
+        this.http.post('/api/mutations/move', {
+          item_ids: itemIds,
+          unit_id: target.unit_id,
+          row: target.row,
+          col: target.col,
+        }),
+      );
+      await this.syncAll();
+      const dest =
+        target.unit_id === 'UNASSIGNED'
+          ? 'UNASSIGNED Inbox'
+          : `${target.unit_id} · R${target.row} · C${target.col}`;
+      this.notify('ok', `Moved ${itemIds.length} item(s) to ${dest}`);
+      return true;
+    } catch (err) {
+      this.notify('warn', this.extractError(err, 'Move failed.'));
+      return false;
+    } finally {
+      this.mutating.set(false);
+    }
+  }
+
+  async swapBins(from: CellCoord, to: CellCoord): Promise<boolean> {
+    this.mutating.set(true);
+    try {
+      const res = await firstValueFrom(
+        this.http.post<{ summary: string }>('/api/mutations/swap', { from, to }),
+      );
+      await this.syncAll();
+      this.notify('ok', res.summary);
+      return true;
+    } catch (err) {
+      this.notify('warn', this.extractError(err, 'Swap failed.'));
+      return false;
+    } finally {
+      this.mutating.set(false);
+    }
+  }
+
+  async shiftRow(payload: {
+    unit_id: string;
+    row: number;
+    fromCol: number;
+    toCol?: number;
+    mode: 'promote' | 'insert_gap';
+  }): Promise<boolean> {
+    this.mutating.set(true);
+    try {
+      const res = await firstValueFrom(
+        this.http.post<{ summary: string }>('/api/mutations/shift', payload),
+      );
+      await this.syncAll();
+      this.notify('ok', res.summary);
+      return true;
+    } catch (err) {
+      this.notify('warn', this.extractError(err, 'Row shift failed.'));
+      return false;
+    } finally {
+      this.mutating.set(false);
+    }
+  }
+
+  async importDistributorCsv(
+    csvText: string,
+    skipDuplicates = true,
+  ): Promise<ImportCsvResponse | null> {
+    this.mutating.set(true);
+    try {
+      const res = await firstValueFrom(
+        this.http.post<ImportCsvResponse>('/api/import', { csvText, skipDuplicates }),
+      );
+      await this.syncAll();
+      this.notify(
+        'ok',
+        `Imported ${res.addedCount} item(s) into Inbox (${res.skippedDuplicates} skipped)`,
+      );
+      return res;
+    } catch (err) {
+      this.notify('warn', this.extractError(err, 'CSV import failed.'));
+      return null;
+    } finally {
+      this.mutating.set(false);
     }
   }
 
@@ -285,9 +458,7 @@ export class RackFlowStore {
       if (res.ok) {
         try {
           sessionStorage.setItem(PIN_STORAGE_KEY, pin.trim());
-        } catch {
-          // ignore
-        }
+        } catch {}
         this.moderatorUnlocked.set(true);
         this.notify('ok', 'Moderator mode unlocked');
         return true;
@@ -301,22 +472,23 @@ export class RackFlowStore {
   lockModerator(): void {
     try {
       sessionStorage.removeItem(PIN_STORAGE_KEY);
-    } catch {
-      // ignore
-    }
+    } catch {}
     this.moderatorUnlocked.set(false);
     this.notify('info', 'Moderator mode locked');
   }
 
   async undoLastChange(): Promise<void> {
+    this.mutating.set(true);
     try {
       const res = await firstValueFrom(
         this.http.post<{ restored: string; backupCount: number }>('/api/undo', {}),
       );
-      await this.refreshInventory();
+      await this.syncAll();
       this.notify('ok', `Restored snapshot ${res.restored}`);
-    } catch {
-      this.notify('warn', 'Undo failed (requires Moderator unlock and an active backup).');
+    } catch (err) {
+      this.notify('warn', this.extractError(err, 'Undo failed.'));
+    } finally {
+      this.mutating.set(false);
     }
   }
 
@@ -326,18 +498,14 @@ export class RackFlowStore {
     document.documentElement.setAttribute('data-theme', next);
     try {
       localStorage.setItem('rackflow-theme', next);
-    } catch {
-      // ignore
-    }
+    } catch {}
   }
 
   setStaffName(name: string): void {
     this.staffName.set(name);
     try {
       localStorage.setItem(STAFF_STORAGE_KEY, name);
-    } catch {
-      // ignore
-    }
+    } catch {}
   }
 
   notify(kind: ToastMessage['kind'], text: string): void {

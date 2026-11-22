@@ -119,3 +119,73 @@ export interface CellCoord {
   row: number;
   col: number;
 }
+
+export interface BinBottleneck {
+  unit_id: string;
+  unit_name: string;
+  row: number;
+  col: number;
+  code: string;
+  itemCount: number;
+  avgFindTimeSec: number;
+  maxFindTimeSec: number;
+  brands: string[];
+}
+
+export interface SaltScatterAlert {
+  salt: string;
+  spotCount: number;
+  locations: string[];
+  items: Array<{ item_id: string; brand_name: string; code: string }>;
+}
+
+export interface RelocationCandidate {
+  item_id: string;
+  brand_name: string;
+  currentCode: string;
+  unit_id: string;
+  row: number;
+  col: number;
+  find_time_sec: number;
+  reason: string;
+}
+
+export interface ShopAnalyticsResponse {
+  summary: {
+    totalItems: number;
+    mappedCount: number;
+    unassignedCount: number;
+    flaggedMissingCount: number;
+    slowFindCount: number;
+    staleCount: number;
+    missingMrpCount: number;
+    avgFindTimeSec: number | null;
+    scatterAlertCount: number;
+  };
+  slowHotspots: BinBottleneck[];
+  scatterAlerts: SaltScatterAlert[];
+  relocationCandidates: RelocationCandidate[];
+  flaggedItems: MedicineItem[];
+  staleItems: MedicineItem[];
+  unassignedItems: MedicineItem[];
+  warnings: Warning[];
+  backupCount: number;
+}
+
+export interface AuditEntry {
+  timestamp: string;
+  actor: string;
+  role: 'staff' | 'moderator';
+  action: string;
+  summary: string;
+  snapshot?: string | null;
+  meta?: Record<string, unknown>;
+}
+
+export interface ImportCsvResponse {
+  addedCount: number;
+  skippedDuplicates: number;
+  added: MedicineItem[];
+  warnings: Warning[];
+  backupCount: number;
+}
