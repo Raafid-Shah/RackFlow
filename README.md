@@ -103,12 +103,201 @@ Captured directly from the local server running on port `3000`:
 
 **Typo Search (`GET /api/search?q=crocn`)**
 ```json
-[FILL: Paste output of curl -s "[http://127.0.0.1:3000/api/search?q=crocn](http://127.0.0.1:3000/api/search?q=crocn)" | python3 -m json.tool]
+{"query":"crocn","count":1,"elapsedMs":3.13,"results":[{"item":{"item_id":"RF05","brand_name":"Crocin Advance 500mg Tablet","salt_compound":"Paracetamol (500mg)","strength_form":"","category":"","tags":[],"unit_id":"W1","row":1,"col":2,"mrp_inr":19.53,"find_time_sec":15.8,"observed_at":"20:49","last_verified":"2026-11-21","status":"OK","notes":""},"score":0.8333333333333334,"tier":3,"isApproximate":true,"alsoStoredAt":[],"cue":{"code":"W1 · R1 · C2","unit_name":"Left Wall Rack","anchor_rule":"Row 1 = Top Shelf | Col 1 = Closest to Counter","band":"Top · Front End","siblings":["Budamate 100 Transcaps"],"left":{"col":1,"brands":["Atorva Gold 10 Capsule","Ampoxin-CV 500mg/125mg Tablet"]},"right":{"col":3,"brands":["Duloren 20 Tablet"]}},"isSlowFind":true,"isStale":false}]}
 ```
 
 **Single-Pass Pick Route (`POST /api/route`)**
 ```json
-[FILL: Paste output of your POST /api/route test]
+{
+    "groups": [
+        {
+            "unit_id": "D1",
+            "unit_name": "Counter Drawers",
+            "anchor_rule": "Row 1 = Top Drawer | Col 1 = Leftmost",
+            "stops": [
+                {
+                    "item": {
+                        "item_id": "RF04",
+                        "brand_name": "Benxop Face Wash",
+                        "salt_compound": "Benzoyl Peroxide (4% w/w)",
+                        "strength_form": "",
+                        "category": "",
+                        "tags": [],
+                        "unit_id": "D1",
+                        "row": 1,
+                        "col": 1,
+                        "mrp_inr": 235,
+                        "find_time_sec": 7.2,
+                        "observed_at": "20:48",
+                        "last_verified": "2026-11-21",
+                        "status": "OK",
+                        "notes": ""
+                    },
+                    "qty": 1,
+                    "code": "D1 \u00b7 R1 \u00b7 C1",
+                    "lineTotal": 235,
+                    "cue": {
+                        "code": "D1 \u00b7 R1 \u00b7 C1",
+                        "unit_name": "Counter Drawers",
+                        "anchor_rule": "Row 1 = Top Drawer | Col 1 = Leftmost",
+                        "band": "Top \u00b7 Front End",
+                        "siblings": [],
+                        "left": null,
+                        "right": {
+                            "col": 2,
+                            "brands": [
+                                "Fusiwal Cream"
+                            ]
+                        }
+                    },
+                    "isSlowFind": false
+                }
+            ]
+        },
+        {
+            "unit_id": "W1",
+            "unit_name": "Left Wall Rack",
+            "anchor_rule": "Row 1 = Top Shelf | Col 1 = Closest to Counter",
+            "stops": [
+                {
+                    "item": {
+                        "item_id": "RF51",
+                        "brand_name": "Zerodol-SP Tablet",
+                        "salt_compound": "Aceclofenac (100mg) + Paracetamol (325mg) + Serratiopeptidase (15mg)",
+                        "strength_form": "",
+                        "category": "",
+                        "tags": [],
+                        "unit_id": "W1",
+                        "row": 3,
+                        "col": 3,
+                        "mrp_inr": 150.85,
+                        "find_time_sec": 20.4,
+                        "observed_at": "21:14",
+                        "last_verified": "2026-11-22",
+                        "status": "OK",
+                        "notes": ""
+                    },
+                    "qty": 1,
+                    "code": "W1 \u00b7 R3 \u00b7 C3",
+                    "lineTotal": 150.85,
+                    "cue": {
+                        "code": "W1 \u00b7 R3 \u00b7 C3",
+                        "unit_name": "Left Wall Rack",
+                        "anchor_rule": "Row 1 = Top Shelf | Col 1 = Closest to Counter",
+                        "band": "Lower-Middle \u00b7 Front End",
+                        "siblings": [
+                            "Zifi 200 Tablet"
+                        ],
+                        "left": {
+                            "col": 2,
+                            "brands": [
+                                "Telmikind 80 Tablet"
+                            ]
+                        },
+                        "right": {
+                            "col": 4,
+                            "brands": [
+                                "Qutan SR 300 Tablet",
+                                "Qdmrd 200 Tablet"
+                            ]
+                        }
+                    },
+                    "isSlowFind": true
+                },
+                {
+                    "item": {
+                        "item_id": "RF32",
+                        "brand_name": "Pioglit 30 Tablet",
+                        "salt_compound": "Pioglitazone (30mg)",
+                        "strength_form": "",
+                        "category": "",
+                        "tags": [],
+                        "unit_id": "W1",
+                        "row": 2,
+                        "col": 4,
+                        "mrp_inr": null,
+                        "find_time_sec": 18.6,
+                        "observed_at": "21:04",
+                        "last_verified": "2026-11-22",
+                        "status": "OK",
+                        "notes": ""
+                    },
+                    "qty": 1,
+                    "code": "W1 \u00b7 R2 \u00b7 C4",
+                    "lineTotal": null,
+                    "cue": {
+                        "code": "W1 \u00b7 R2 \u00b7 C4",
+                        "unit_name": "Left Wall Rack",
+                        "anchor_rule": "Row 1 = Top Shelf | Col 1 = Closest to Counter",
+                        "band": "Upper-Middle \u00b7 Middle",
+                        "siblings": [
+                            "Pregabid ME 75 Capsule"
+                        ],
+                        "left": {
+                            "col": 3,
+                            "brands": [
+                                "Moxikind-CV 625 Tablet",
+                                "Metafort 1000 Tablet SR"
+                            ]
+                        },
+                        "right": {
+                            "col": 5,
+                            "brands": [
+                                "Hifenac-MR Tablet",
+                                "Inac 50 Tablet"
+                            ]
+                        }
+                    },
+                    "isSlowFind": true
+                }
+            ]
+        },
+        {
+            "unit_id": "F1",
+            "unit_name": "Corner Fridge",
+            "anchor_rule": "Row 1 = Top Shelf | Single Column",
+            "stops": [
+                {
+                    "item": {
+                        "item_id": "RF14",
+                        "brand_name": "Glaritus 100IU/ml Injection",
+                        "salt_compound": "Insulin Glargine (100IU)",
+                        "strength_form": "",
+                        "category": "",
+                        "tags": [],
+                        "unit_id": "F1",
+                        "row": 1,
+                        "col": 1,
+                        "mrp_inr": 585,
+                        "find_time_sec": 5.9,
+                        "observed_at": "20:54",
+                        "last_verified": "2026-11-21",
+                        "status": "OK",
+                        "notes": ""
+                    },
+                    "qty": 1,
+                    "code": "F1 \u00b7 R1 \u00b7 C1",
+                    "lineTotal": 585,
+                    "cue": {
+                        "code": "F1 \u00b7 R1 \u00b7 C1",
+                        "unit_name": "Corner Fridge",
+                        "anchor_rule": "Row 1 = Top Shelf | Single Column",
+                        "band": "Top",
+                        "siblings": [],
+                        "left": null,
+                        "right": null
+                    },
+                    "isSlowFind": false
+                }
+            ]
+        }
+    ],
+    "unmapped": [],
+    "unknownIds": [],
+    "subtotalInr": 970.85,
+    "missingMrpCount": 1,
+    "lineCount": 4
+}
 ```
 
 ---
