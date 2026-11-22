@@ -1,6 +1,6 @@
 # Fieldwork — RackFlow
 
-## 1. Visit Log (20+ Minutes)
+## 1. Visit Log
 - **Place:** [Hope Pharmacy, Batamaloo Srinagar]
 - **Date:** [21 November 2026]
 - **Photos:**
