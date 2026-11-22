@@ -9,6 +9,7 @@ export type AuditAction =
   | 'MOVE_ITEM'
   | 'SWAP_CONTAINERS'
   | 'SHIFT_ROW'
+  | 'UPDATE_LAYOUT'
   | 'IMPORT_CSV'
   | 'UNDO_RESTORE';
 

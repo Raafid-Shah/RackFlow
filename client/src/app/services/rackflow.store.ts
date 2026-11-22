@@ -427,6 +427,23 @@ export class RackFlowStore {
     }
   }
 
+  async saveLayout(units: UnitLayout[]): Promise<boolean> {
+    this.mutating.set(true);
+    try {
+      const res = await firstValueFrom(
+        this.http.put<{ layout: UnitLayout[]; orderSummary: string }>('/api/layout', { units }),
+      );
+      await this.syncAll();
+      this.notify('ok', `Saved layout: ${res.orderSummary}`);
+      return true;
+    } catch (err) {
+      this.notify('warn', this.extractError(err, 'Could not save layout.'));
+      return false;
+    } finally {
+      this.mutating.set(false);
+    }
+  }
+
   async importDistributorCsv(
     csvText: string,
     skipDuplicates = true,

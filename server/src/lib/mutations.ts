@@ -1,5 +1,5 @@
 import { parseCsv, serializeCsv } from './csvCodec';
-import { formatLocationCode } from './spatialCues';
+import { formatLocationCode, isMapped } from './spatialCues';
 import {
   ITEM_STATUSES,
   ItemStatus,
@@ -549,4 +549,90 @@ export function importDistributorCsv(
     skippedDuplicates,
     warnings: parsed.warnings,
   };
+}
+
+export function validateLayoutUpdate(
+  rawUnits: unknown,
+  items: readonly MedicineItem[],
+): UnitLayout[] {
+  if (!Array.isArray(rawUnits) || rawUnits.length === 0) {
+    throw new MutationError('Layout must contain at least one storage unit', 400);
+  }
+
+  const units: UnitLayout[] = [];
+  const seen = new Set<string>();
+
+  rawUnits.forEach((raw, i) => {
+    const o = (raw ?? {}) as Record<string, unknown>;
+    const unit_id = typeof o.unit_id === 'string' ? o.unit_id.trim().toUpperCase() : '';
+    if (!unit_id || unit_id === UNASSIGNED_UNIT || !/^[A-Z0-9_-]{1,12}$/.test(unit_id)) {
+      throw new MutationError(
+        `Unit #${i + 1} has invalid unit_id "${unit_id}" (use 1-12 alphanumeric chars, never UNASSIGNED)`,
+        400,
+      );
+    }
+    if (seen.has(unit_id)) {
+      throw new MutationError(`Duplicate unit_id "${unit_id}" in layout`, 400);
+    }
+    seen.add(unit_id);
+
+    const walk_order = Number(o.walk_order);
+    if (!Number.isFinite(walk_order) || walk_order < 0) {
+      throw new MutationError(`Unit "${unit_id}" has invalid walk_order`, 400);
+    }
+
+    if (!Array.isArray(o.row_widths) || o.row_widths.length === 0) {
+      throw new MutationError(`Unit "${unit_id}" must have at least one row`, 400);
+    }
+    if (o.row_widths.length > MAX_GRID_INDEX) {
+      throw new MutationError(`Unit "${unit_id}" exceeds max rows (${MAX_GRID_INDEX})`, 400);
+    }
+
+    const row_widths = o.row_widths.map((w, rIdx) => {
+      const n = Number(w);
+      if (!Number.isInteger(n) || n < 1 || n > MAX_GRID_INDEX) {
+        throw new MutationError(
+          `Unit "${unit_id}" row ${rIdx + 1} has invalid width "${String(w)}" (expected 1-${MAX_GRID_INDEX})`,
+          400,
+        );
+      }
+      return n;
+    });
+
+    const name =
+      typeof o.name === 'string' && o.name.trim() !== '' ? o.name.trim().slice(0, 60) : unit_id;
+    const anchor_rule =
+      typeof o.anchor_rule === 'string' ? o.anchor_rule.trim().slice(0, 140) : '';
+
+    units.push({ unit_id, name, walk_order, anchor_rule, row_widths });
+  });
+
+  const byId = new Map<string, UnitLayout>(units.map((u) => [u.unit_id, u]));
+  const conflicts: string[] = [];
+
+  for (const item of items) {
+    if (!isMapped(item) || item.row === null || item.col === null) continue;
+    const target = byId.get(item.unit_id);
+    const code = formatLocationCode(item.unit_id, item.row, item.col);
+    if (!target) {
+      conflicts.push(`${item.brand_name} (${code}: unit removed)`);
+    } else if (item.row > target.row_widths.length) {
+      conflicts.push(`${item.brand_name} (${code}: row ${item.row} removed)`);
+    } else if (item.col > target.row_widths[item.row - 1]) {
+      conflicts.push(
+        `${item.brand_name} (${code}: row ${item.row} shrunk to ${target.row_widths[item.row - 1]} cols)`,
+      );
+    }
+  }
+
+  if (conflicts.length > 0) {
+    const preview = conflicts.slice(0, 3).join('; ');
+    const more = conflicts.length > 3 ? ` (+${conflicts.length - 3} more)` : '';
+    throw new MutationError(
+      `Cannot save layout — move occupied medicines first: ${preview}${more}`,
+      409,
+    );
+  }
+
+  return units.sort((a, b) => a.walk_order - b.walk_order || a.unit_id.localeCompare(b.unit_id));
 }

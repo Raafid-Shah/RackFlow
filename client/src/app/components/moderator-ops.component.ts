@@ -1,19 +1,25 @@
-import { Component, OnInit, computed, inject, output, signal } from '@angular/core';
+import { Component, OnInit, computed, effect, inject, output, signal } from '@angular/core';
 import {
   Activity,
   AlertTriangle,
+  ArrowDown,
   ArrowLeftRight,
   ArrowRight,
+  ArrowUp,
   CheckCircle2,
   Clock,
   Flag,
   History,
   Inbox,
   Layers,
-  LucideAngularModule,
+  LayoutGrid,
   Lock,
+  LucideAngularModule,
+  Minus,
   Plus,
   RefreshCw,
+  Save,
+  Trash2,
   Undo2,
   Upload,
   Wrench,
@@ -23,10 +29,17 @@ import {
   ImportCsvResponse,
   MedicineItem,
   RelocationCandidate,
+  UnitLayout,
 } from '../models/rackflow.models';
 import { RackFlowStore } from '../services/rackflow.store';
 
-type OpsSubTab = 'radar' | 'mutate' | 'inbox' | 'audit';
+type OpsSubTab = 'radar' | 'mutate' | 'layout' | 'inbox' | 'audit';
+
+interface UnitOccupancy {
+  totalItems: number;
+  maxRow: number;
+  maxColByRow: Map<number, number>;
+}
 
 @Component({
   selector: 'rf-moderator-ops',
@@ -38,7 +51,7 @@ type OpsSubTab = 'radar' | 'mutate' | 'inbox' | 'audit';
           <div class="flex items-center gap-2">
             <lucide-icon [img]="LockIcon" [size]="16" />
             <span>
-              <strong>Read-Only Ops Preview:</strong> Unlock Moderator PIN to execute moves, swaps, shifts, imports, or Undo.
+              <strong>Read-Only Ops Preview:</strong> Unlock Moderator PIN to execute moves, swaps, shifts, layout edits, imports, or Undo.
             </span>
           </div>
           <button
@@ -73,6 +86,21 @@ type OpsSubTab = 'radar' | 'mutate' | 'inbox' | 'audit';
             [class.text-muted]="subTab() !== 'mutate'"
           >
             <lucide-icon [img]="WrenchIcon" [size]="14" /> Rack Mutations
+          </button>
+
+          <button
+            type="button"
+            (click)="openLayoutTab()"
+            class="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition"
+            [class.rf-pill-amber]="subTab() === 'layout'"
+            [class.border-line]="subTab() !== 'layout'"
+            [class.text-muted]="subTab() !== 'layout'"
+          >
+            <lucide-icon [img]="LayoutIcon" [size]="14" />
+            Shop Layout
+            @if (layoutDirty()) {
+              <span class="h-1.5 w-1.5 rounded-full bg-amber"></span>
+            }
           </button>
 
           <button
@@ -646,6 +674,223 @@ type OpsSubTab = 'radar' | 'mutate' | 'inbox' | 'audit';
         </div>
       }
 
+      @if (subTab() === 'layout') {
+        <div class="space-y-4">
+          <section class="rounded-xl border border-line bg-surface p-4">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 class="text-sm font-bold text-fg">Single-Swoop Walk Order &amp; Jagged Shelf Editor</h3>
+                <p class="mt-0.5 text-xs text-muted">
+                  Reorder racks to match physical counter proximity. Changes write atomically to <span class="font-mono">data/layout.json</span> and re-route Pick Slips immediately.
+                </p>
+              </div>
+
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  (click)="resetLayoutDraft()"
+                  [disabled]="!layoutDirty() || store.mutating()"
+                  class="rounded-lg border border-line bg-bg px-3 py-1.5 text-xs text-muted hover:text-fg disabled:opacity-40"
+                >
+                  Discard
+                </button>
+                <button
+                  type="button"
+                  (click)="submitLayout()"
+                  [disabled]="!layoutDirty() || store.mutating()"
+                  class="inline-flex items-center gap-1.5 rounded-lg bg-amber px-3.5 py-1.5 text-xs font-bold text-bg hover:opacity-90 disabled:opacity-40"
+                >
+                  <lucide-icon [img]="SaveIcon" [size]="14" /> Save Layout
+                </button>
+              </div>
+            </div>
+
+            <div class="mt-3 rounded-lg border border-line bg-bg px-3 py-2.5">
+              <p class="font-mono text-[10px] uppercase tracking-wider text-muted">Live Pick-Slip Swoop Order</p>
+              <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
+                @for (u of layoutDraft(); track u.unit_id; let idx = $index; let last = $last) {
+                  <span class="rf-pill-ok rounded px-2 py-0.5 font-mono text-xs font-semibold">
+                    {{ idx + 1 }}. {{ u.unit_id }} · {{ u.name }}
+                  </span>
+                  @if (!last) {
+                    <lucide-icon [img]="ArrowRightIcon" [size]="13" class="text-muted" />
+                  }
+                }
+              </div>
+            </div>
+
+            <p class="mt-2.5 text-[11px] text-muted">
+              Note: 1-Click Undo restores <span class="font-mono">data/data.csv</span> inventory snapshots only. Layout edits are occupancy-checked and written directly to <span class="font-mono">data/layout.json</span>.
+            </p>
+          </section>
+
+          <div class="space-y-3">
+            @for (unit of layoutDraft(); track unit.unit_id; let idx = $index) {
+              <section class="rounded-xl border border-line bg-surface p-4">
+                <div class="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-3">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <span class="rounded border border-amber bg-bg px-2 py-0.5 font-mono text-xs font-bold text-amber">
+                      {{ unit.unit_id }}
+                    </span>
+                    <span class="font-mono text-xs text-muted">walk_order: {{ (idx + 1) * 100 }}</span>
+                    <span class="rounded border border-line bg-bg px-2 py-0.5 font-mono text-[11px] text-muted">
+                      {{ unitItemCount(unit.unit_id) }} slotted
+                    </span>
+                  </div>
+
+                  <div class="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      (click)="moveUnitOrder(idx, -1)"
+                      [disabled]="idx === 0"
+                      class="rounded-md border border-line bg-bg p-1.5 text-muted hover:border-amber hover:text-amber disabled:opacity-30"
+                      title="Move closer to counter"
+                    >
+                      <lucide-icon [img]="ArrowUpIcon" [size]="14" />
+                    </button>
+                    <button
+                      type="button"
+                      (click)="moveUnitOrder(idx, 1)"
+                      [disabled]="idx === layoutDraft().length - 1"
+                      class="rounded-md border border-line bg-bg p-1.5 text-muted hover:border-amber hover:text-amber disabled:opacity-30"
+                      title="Move farther from counter"
+                    >
+                      <lucide-icon [img]="ArrowDownIcon" [size]="14" />
+                    </button>
+                    <button
+                      type="button"
+                      (click)="removeDraftUnit(idx)"
+                      [disabled]="unitItemCount(unit.unit_id) > 0 || layoutDraft().length <= 1"
+                      class="rounded-md border border-line bg-bg p-1.5 text-muted hover:border-warn hover:text-warn disabled:opacity-30"
+                      [title]="unitItemCount(unit.unit_id) > 0 ? 'Move medicines out of this unit first' : 'Delete unit'"
+                    >
+                      <lucide-icon [img]="TrashIcon" [size]="14" />
+                    </button>
+                  </div>
+                </div>
+
+                <div class="mt-3 grid gap-2.5 sm:grid-cols-2">
+                  <div>
+                    <label class="block text-[11px] text-muted">Display Name</label>
+                    <input
+                      type="text"
+                      [value]="unit.name"
+                      (input)="updateDraftUnitField(idx, 'name', asStr($event))"
+                      class="mt-1 w-full rounded-lg border border-line bg-bg px-2.5 py-1.5 text-xs text-fg focus:border-amber focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-[11px] text-muted">Anchor Rule (shown to floor helpers)</label>
+                    <input
+                      type="text"
+                      [value]="unit.anchor_rule"
+                      (input)="updateDraftUnitField(idx, 'anchor_rule', asStr($event))"
+                      class="mt-1 w-full rounded-lg border border-line bg-bg px-2.5 py-1.5 font-mono text-xs text-fg focus:border-amber focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div class="mt-3 space-y-2">
+                  <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-semibold text-muted">Shelf Rows (Jagged Column Widths)</span>
+                    <div class="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        (click)="removeDraftRow(idx)"
+                        [disabled]="!canRemoveLastRow(unit)"
+                        class="inline-flex items-center gap-1 rounded border border-line bg-bg px-2 py-1 text-[11px] text-muted hover:border-warn hover:text-warn disabled:opacity-30"
+                      >
+                        <lucide-icon [img]="MinusIcon" [size]="11" /> Row
+                      </button>
+                      <button
+                        type="button"
+                        (click)="addDraftRow(idx)"
+                        class="inline-flex items-center gap-1 rounded border border-line bg-bg px-2 py-1 text-[11px] text-muted hover:border-ok hover:text-ok"
+                      >
+                        <lucide-icon [img]="PlusIcon" [size]="11" /> Row
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                    @for (width of unit.row_widths; track $index; let rIdx = $index) {
+                      <div class="flex items-center justify-between gap-2 rounded-lg border border-line bg-bg px-2.5 py-1.5">
+                        <div>
+                          <span class="font-mono text-xs font-bold text-fg">Row {{ rIdx + 1 }}</span>
+                          @if (maxOccupiedCol(unit.unit_id, rIdx + 1) > 0) {
+                            <span class="ml-1.5 font-mono text-[10px] text-amber">
+                              used ≤ C{{ maxOccupiedCol(unit.unit_id, rIdx + 1) }}
+                            </span>
+                          }
+                        </div>
+
+                        <div class="inline-flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            (click)="adjustRowWidth(idx, rIdx, -1)"
+                            [disabled]="width <= Math.max(1, maxOccupiedCol(unit.unit_id, rIdx + 1))"
+                            class="rounded border border-line bg-surface p-1 text-muted hover:text-fg disabled:opacity-30"
+                          >
+                            <lucide-icon [img]="MinusIcon" [size]="11" />
+                          </button>
+                          <span class="min-w-[44px] text-center font-mono text-xs text-fg">
+                            {{ width }} col{{ width === 1 ? '' : 's' }}
+                          </span>
+                          <button
+                            type="button"
+                            (click)="adjustRowWidth(idx, rIdx, 1)"
+                            class="rounded border border-line bg-surface p-1 text-muted hover:text-fg"
+                          >
+                            <lucide-icon [img]="PlusIcon" [size]="11" />
+                          </button>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </div>
+              </section>
+            }
+          </div>
+
+          <section class="rounded-xl border border-line bg-surface p-4">
+            <h4 class="flex items-center gap-1.5 text-xs font-bold text-fg">
+              <lucide-icon [img]="PlusIcon" [size]="14" class="text-ok" />
+              Add New Storage Unit
+            </h4>
+            <form (submit)="addDraftUnit($event)" class="mt-2.5 grid gap-2 sm:grid-cols-4">
+              <input
+                type="text"
+                [value]="addUnitId()"
+                (input)="addUnitId.set(asStr($event))"
+                placeholder="ID (e.g. W2)"
+                class="rounded-lg border border-line bg-bg px-2.5 py-1.5 font-mono text-xs uppercase text-fg focus:border-amber focus:outline-none"
+              />
+              <input
+                type="text"
+                [value]="addUnitName()"
+                (input)="addUnitName.set(asStr($event))"
+                placeholder="Name (e.g. Right Wall Rack)"
+                class="rounded-lg border border-line bg-bg px-2.5 py-1.5 text-xs text-fg focus:border-amber focus:outline-none"
+              />
+              <input
+                type="text"
+                [value]="addUnitAnchor()"
+                (input)="addUnitAnchor.set(asStr($event))"
+                placeholder="Anchor rule"
+                class="rounded-lg border border-line bg-bg px-2.5 py-1.5 text-xs text-fg focus:border-amber focus:outline-none"
+              />
+              <button
+                type="submit"
+                [disabled]="!addUnitId().trim()"
+                class="rf-pill-ok rounded-lg px-3 py-1.5 text-xs font-bold hover:opacity-90 disabled:opacity-40"
+              >
+                Add to Draft
+              </button>
+            </form>
+          </section>
+        </div>
+      }
+
       @if (subTab() === 'inbox') {
         <div class="grid gap-4 lg:grid-cols-12">
           <section class="rounded-xl border border-line bg-surface p-4 lg:col-span-5">
@@ -770,7 +1015,7 @@ type OpsSubTab = 'radar' | 'mutate' | 'inbox' | 'audit';
             <div>
               <h3 class="text-sm font-bold text-fg">Audit Log &amp; Snapshot Recovery</h3>
               <p class="text-xs text-muted">
-                Every mutation writes a byte-exact CSV snapshot before replacing <span class="font-mono">data/data.csv</span>.
+                Every CSV mutation writes a byte-exact snapshot before replacing <span class="font-mono">data/data.csv</span>.
               </p>
             </div>
             <button
@@ -786,7 +1031,7 @@ type OpsSubTab = 'radar' | 'mutate' | 'inbox' | 'audit';
 
           @if (store.auditEntries().length === 0) {
             <p class="py-6 text-center text-xs text-muted">
-              No mutations recorded yet. Flag an item, promote a slow column, or import a CSV to see entries here.
+              No mutations recorded yet. Flag an item, reorder a rack, or import a CSV to see entries here.
             </p>
           } @else {
             <div class="max-h-[420px] space-y-2 overflow-y-auto pr-1">
@@ -825,6 +1070,7 @@ type OpsSubTab = 'radar' | 'mutate' | 'inbox' | 'audit';
 export class ModeratorOpsComponent implements OnInit {
   readonly store = inject(RackFlowStore);
   readonly requestUnlock = output<void>();
+  readonly Math = Math;
 
   readonly subTab = signal<OpsSubTab>('radar');
 
@@ -853,12 +1099,19 @@ export class ModeratorOpsComponent implements OnInit {
   readonly newRow = signal<number>(1);
   readonly newCol = signal<number>(1);
 
+  readonly layoutDraft = signal<UnitLayout[]>([]);
+  readonly layoutDirty = signal<boolean>(false);
+  readonly addUnitId = signal<string>('');
+  readonly addUnitName = signal<string>('');
+  readonly addUnitAnchor = signal<string>('');
+
   readonly csvDraft = signal<string>('');
   readonly lastImport = signal<ImportCsvResponse | null>(null);
   private readonly inboxTargets = signal<Record<string, CellCoord>>({});
 
   readonly RadarIcon = Activity;
   readonly WrenchIcon = Wrench;
+  readonly LayoutIcon = LayoutGrid;
   readonly InboxIcon = Inbox;
   readonly HistoryIcon = History;
   readonly RefreshIcon = RefreshCw;
@@ -866,10 +1119,15 @@ export class ModeratorOpsComponent implements OnInit {
   readonly CheckIcon = CheckCircle2;
   readonly ClockIcon = Clock;
   readonly ArrowRightIcon = ArrowRight;
+  readonly ArrowUpIcon = ArrowUp;
+  readonly ArrowDownIcon = ArrowDown;
   readonly LayersIcon = Layers;
   readonly AlertIcon = AlertTriangle;
   readonly SwapIcon = ArrowLeftRight;
   readonly PlusIcon = Plus;
+  readonly MinusIcon = Minus;
+  readonly SaveIcon = Save;
+  readonly TrashIcon = Trash2;
   readonly UploadIcon = Upload;
   readonly UndoIcon = Undo2;
   readonly LockIcon = Lock;
@@ -886,8 +1144,40 @@ export class ModeratorOpsComponent implements OnInit {
     this.store.items().filter((i) => i.status === 'UNASSIGNED' || i.row === null || i.col === null),
   );
 
+  readonly occupancyByUnit = computed(() => {
+    const map = new Map<string, UnitOccupancy>();
+    for (const item of this.store.items()) {
+      if (item.unit_id === 'UNASSIGNED' || item.row === null || item.col === null) continue;
+      let occ = map.get(item.unit_id);
+      if (!occ) {
+        occ = { totalItems: 0, maxRow: 0, maxColByRow: new Map() };
+        map.set(item.unit_id, occ);
+      }
+      occ.totalItems++;
+      if (item.row > occ.maxRow) occ.maxRow = item.row;
+      const prevCol = occ.maxColByRow.get(item.row) ?? 0;
+      if (item.col > prevCol) occ.maxColByRow.set(item.row, item.col);
+    }
+    return map;
+  });
+
+  constructor() {
+    effect(() => {
+      const live = this.store.layout();
+      if (!this.layoutDirty()) {
+        this.layoutDraft.set(this.cloneSortedLayout(live));
+      }
+    });
+  }
+
   ngOnInit(): void {
     this.store.refreshOpsData();
+  }
+
+  private cloneSortedLayout(units: readonly UnitLayout[]): UnitLayout[] {
+    return [...units]
+      .sort((a, b) => a.walk_order - b.walk_order || a.unit_id.localeCompare(b.unit_id))
+      .map((u) => ({ ...u, row_widths: [...u.row_widths] }));
   }
 
   private ensureUnlocked(): boolean {
@@ -922,6 +1212,132 @@ export class ModeratorOpsComponent implements OnInit {
       .filter((i) => i.unit_id === unitId && i.row === row && i.col === col)
       .map((i) => i.brand_name);
     return brands.length > 0 ? brands.join(', ') : '(empty bin)';
+  }
+
+  openLayoutTab(): void {
+    if (!this.layoutDirty()) {
+      this.layoutDraft.set(this.cloneSortedLayout(this.store.layout()));
+    }
+    this.subTab.set('layout');
+  }
+
+  resetLayoutDraft(): void {
+    this.layoutDraft.set(this.cloneSortedLayout(this.store.layout()));
+    this.layoutDirty.set(false);
+  }
+
+  unitItemCount(unitId: string): number {
+    return this.occupancyByUnit().get(unitId)?.totalItems ?? 0;
+  }
+
+  maxOccupiedCol(unitId: string, row: number): number {
+    return this.occupancyByUnit().get(unitId)?.maxColByRow.get(row) ?? 0;
+  }
+
+  canRemoveLastRow(unit: UnitLayout): boolean {
+    if (unit.row_widths.length <= 1) return false;
+    const maxRow = this.occupancyByUnit().get(unit.unit_id)?.maxRow ?? 0;
+    return unit.row_widths.length > maxRow;
+  }
+
+  moveUnitOrder(index: number, delta: -1 | 1): void {
+    const target = index + delta;
+    const list = this.layoutDraft().map((u) => ({ ...u, row_widths: [...u.row_widths] }));
+    if (target < 0 || target >= list.length) return;
+    [list[index], list[target]] = [list[target], list[index]];
+    list.forEach((u, i) => (u.walk_order = (i + 1) * 100));
+    this.layoutDraft.set(list);
+    this.layoutDirty.set(true);
+  }
+
+  updateDraftUnitField(index: number, field: 'name' | 'anchor_rule', value: string): void {
+    const list = this.layoutDraft().map((u, i) =>
+      i === index ? { ...u, [field]: value } : u,
+    );
+    this.layoutDraft.set(list);
+    this.layoutDirty.set(true);
+  }
+
+  adjustRowWidth(unitIndex: number, rowIndex: number, delta: -1 | 1): void {
+    const list = this.layoutDraft().map((u, i) => {
+      if (i !== unitIndex) return u;
+      const widths = [...u.row_widths];
+      const minWidth = Math.max(1, this.maxOccupiedCol(u.unit_id, rowIndex + 1));
+      widths[rowIndex] = Math.min(200, Math.max(minWidth, widths[rowIndex] + delta));
+      return { ...u, row_widths: widths };
+    });
+    this.layoutDraft.set(list);
+    this.layoutDirty.set(true);
+  }
+
+  addDraftRow(unitIndex: number): void {
+    const list = this.layoutDraft().map((u, i) => {
+      if (i !== unitIndex) return u;
+      const lastWidth = u.row_widths[u.row_widths.length - 1] ?? 1;
+      return { ...u, row_widths: [...u.row_widths, lastWidth] };
+    });
+    this.layoutDraft.set(list);
+    this.layoutDirty.set(true);
+  }
+
+  removeDraftRow(unitIndex: number): void {
+    const list = this.layoutDraft().map((u, i) => {
+      if (i !== unitIndex || !this.canRemoveLastRow(u)) return u;
+      return { ...u, row_widths: u.row_widths.slice(0, -1) };
+    });
+    this.layoutDraft.set(list);
+    this.layoutDirty.set(true);
+  }
+
+  removeDraftUnit(unitIndex: number): void {
+    const target = this.layoutDraft()[unitIndex];
+    if (!target || this.unitItemCount(target.unit_id) > 0 || this.layoutDraft().length <= 1) return;
+    const next = this.layoutDraft()
+      .filter((_, i) => i !== unitIndex)
+      .map((u, i) => ({ ...u, walk_order: (i + 1) * 100 }));
+    this.layoutDraft.set(next);
+    this.layoutDirty.set(true);
+  }
+
+  addDraftUnit(event: Event): void {
+    event.preventDefault();
+    const id = this.addUnitId().trim().toUpperCase();
+    if (!id || id === 'UNASSIGNED' || !/^[A-Z0-9_-]{1,12}$/.test(id)) {
+      this.store.notify('warn', 'Unit ID must be 1–12 letters/numbers (e.g. W2, C1).');
+      return;
+    }
+    if (this.layoutDraft().some((u) => u.unit_id === id)) {
+      this.store.notify('warn', `Unit "${id}" already exists in layout.`);
+      return;
+    }
+
+    const next = [
+      ...this.layoutDraft(),
+      {
+        unit_id: id,
+        name: this.addUnitName().trim() || id,
+        walk_order: (this.layoutDraft().length + 1) * 100,
+        anchor_rule: this.addUnitAnchor().trim() || 'Row 1 = Top Shelf | Col 1 = Closest to Counter',
+        row_widths: [4],
+      },
+    ];
+    this.layoutDraft.set(next);
+    this.layoutDirty.set(true);
+    this.addUnitId.set('');
+    this.addUnitName.set('');
+    this.addUnitAnchor.set('');
+  }
+
+  async submitLayout(): Promise<void> {
+    if (!this.ensureUnlocked()) return;
+    const normalized = this.layoutDraft().map((u, i) => ({
+      ...u,
+      walk_order: (i + 1) * 100,
+    }));
+    const ok = await this.store.saveLayout(normalized);
+    if (ok) {
+      this.layoutDirty.set(false);
+    }
   }
 
   onMoveUnitChange(u: string): void {

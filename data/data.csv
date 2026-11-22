@@ -1,53 +1,53 @@
-id,brand_name,salt_compound,unit_id,row,col,mrp_inr,find_time_sec,observed_at,last_verified
-RF01,Atorva Gold 10 Capsule,Aspirin (75mg) + Atorvastatin (10mg) + Clopidogrel (75mg),W1,1,1,97.80,16.4,20:47,2026-11-21
-RF02,Ampoxin-CV 500mg/125mg Tablet,Amoxycillin (500mg) + Clavulanic Acid (125mg),W1,1,1,198.50,18.2,20:47,2026-11-21
-RF03,Budamate 100 Transcaps,Formoterol (6mcg) + Budesonide (100mcg),W1,1,2,246.00,11.5,20:48,2026-11-21
-RF04,Benxop Face Wash,Benzoyl Peroxide (4% w/w),D1,1,1,235.00,7.2,20:48,2026-11-21
-RF05,Crocin Advance 500mg Tablet,Paracetamol (500mg),W1,1,2,19.53,15.8,20:49,2026-11-21
-RF06,Citralka Liquid,Disodium Hydrogen Citrate (1.53gm/5ml),W1,4,1,128.40,9.6,20:50,2026-11-21
-RF07,Dolo 156.25mg Suspension,Paracetamol (156.25mg/5ml),W1,4,1,44.20,10.3,20:50,2026-11-21
-RF08,Duloren 20 Tablet,Duloxetine (20mg),W1,1,3,134.00,13.1,20:51,2026-11-21
-RF09,Esofag-D Capsule SR,Domperidone (30mg) + Esomeprazole (40mg),W1,1,4,186.50,14.7,20:51,2026-11-21
-RF10,Exocast Tablet,Montelukast (10mg) + Fexofenadine (120mg),W1,1,4,164.00,11.9,20:51,2026-11-21
-RF11,Febuxor 80 Tablet,Febuxostat (80mg),W1,1,5,178.00,12.4,20:52,2026-11-21
-RF12,Fusiwal Cream,Fusidic Acid (2% w/w),D1,1,2,112.50,6.8,20:53,2026-11-21
-RF13,Glimestar 4 Tablet,Glimepiride (4mg),W1,1,5,86.40,15.2,20:53,2026-11-21
-RF14,Glaritus 100IU/ml Injection,Insulin Glargine (100IU),F1,1,1,585.00,5.9,20:54,2026-11-21
-RF15,Hifenac-MR Tablet,Aceclofenac (100mg) + Paracetamol (325mg) + Chlorzoxazone (500mg),W1,2,1,138.60,14.2,20:54,2026-11-21
-RF16,Hydroeyes 0.05% Eye Drop,Ciclosporin (0.05% w/v),D1,2,1,442.00,8.7,20:55,2026-11-21
-RF17,Inac 50 Tablet,Diclofenac (50mg),W1,2,1,42.00,11.0,20:55,2026-11-21
-RF18,Itrostred 200 Capsule,Itraconazole (200mg),W1,2,2,218.00,16.9,20:56,2026-11-21
-RF19,Jonac Gel,Diclofenac (1.16% w/w),D1,1,3,84.50,6.4,20:56,2026-11-21
-RF20,J-Ring M Forte Tablet ER,Metformin (1000mg) + Teneligliptin (20mg),W1,2,2,172.00,12.8,20:57,2026-11-21
-RF21,Kimet XL 50 Tablet,Metoprolol Succinate (47.5mg),W1,2,3,114.80,13.5,20:58,2026-11-21
-RF22,Kevon Cream,Ketoconazole (2% w/w),D1,1,4,124.00,7.5,20:58,2026-11-21
-RF23,Lantus Solostar 100IU/ml Solution for Injection,Insulin Glargine (100IU/ml),F1,2,1,782.39,6.2,20:59,2026-11-21
-RF24,L-Cin 500 Tablet,Levofloxacin (500mg),W1,2,3,104.50,17.4,20:59,2026-11-21
-RF25,Moxikind-CV 625 Tablet,Amoxycillin (500mg) + Clavulanic Acid (125mg),W1,2,4,184.14,21.3,21:00,2026-11-21
-RF26,Metafort 1000 Tablet SR,Metformin (1000mg),W1,2,4,68.20,19.1,21:01,2026-11-21
-RF27,Nobel MR Tablet,Nimesulide (100mg) + Paracetamol (325mg) + Tizanidine (2mg),W1,2,5,118.00,12.6,21:01,2026-11-21
-RF28,Nebi 2.5 Tablet,Nebivolol (2.5mg),W1,2,5,96.50,14.8,21:01,2026-11-21
-RF29,Obimet Tablet,Metformin (500mg),W1,2,6,39.80,16.5,21:02,2026-11-21
-RF30,Omnix 50 Dry Syrup,Cefixime (50mg),W1,4,2,62.40,11.2,21:03,2026-11-21
-RF31,Pregabid ME 75 Capsule,Methylcobalamin (750mcg) + Pregabalin (75mg),W1,2,7,224.00,22.8,21:03,2026-11-21
-RF32,Pioglit 30 Tablet,Pioglitazone (30mg),W1,2,7,,18.6,21:04,2026-11-21
-RF33,Qutan SR 300 Tablet,Quetiapine (300mg),W1,3,1,268.00,13.9,21:05,2026-11-21
-RF34,Qdmrd 200 Tablet,Hydroxychloroquine (200mg),W1,3,1,118.50,10.7,21:05,2026-11-21
-RF35,Razo-D Capsule SR,Domperidone (30mg) + Rabeprazole (20mg),W1,3,2,361.00,19.4,21:06,2026-11-21
-RF36,Repace 25 Tablet,Losartan (25mg),W1,3,2,54.60,14.1,21:06,2026-11-21
-RF37,Solvin LS Syrup,Ambroxol (30mg/5ml) + Levosalbutamol (1mg/5ml) + Guaifenesin (50mg/5ml),W1,4,2,105.19,9.8,21:07,2026-11-21
-RF38,Softdrops Liquigel,Carboxymethylcellulose (1% w/v),D1,2,2,196.00,8.1,21:07,2026-11-21
-RF39,Telmikind 80 Tablet,Telmisartan (80mg),W1,3,3,82.53,17.9,21:08,2026-11-21
-RF40,Taxim-O CV Dry Syrup,Cefixime (50mg) + Clavulanic Acid (31.25mg),W1,4,3,84.00,12.3,21:08,2026-11-21
-RF41,Unistar 75 Capsule,Rosuvastatin (10mg) + Aspirin (75mg),W1,3,4,132.00,11.6,21:09,2026-11-21
-RF42,Ultra Gel Eye Drop,Carboxymethylcellulose (1% w/v),D1,2,3,174.50,7.9,21:09,2026-11-21
-RF43,Viscodyne Syrup Sugar Free,Ambroxol (15mg/15ml) + Guaifenesin (50mg/15ml) + Menthol (2.5mg/15ml) + Terbutaline (1.25mg/15ml),W1,4,3,119.00,10.4,21:10,2026-11-21
-RF44,Vobose M 0.2 Tablet SR,Metformin (500mg) + Voglibose (0.2mg),W1,3,4,146.20,15.6,21:11,2026-11-21
-RF45,Wincold Z Tablet,Cetirizine (5mg) + Paracetamol (500mg) + Phenylephrine (10mg),W1,3,5,48.00,13.2,21:11,2026-11-21
-RF46,Wosulin-R 40IU/ml Injection,Human insulin (40IU),F1,3,1,162.80,5.5,21:12,2026-11-21
-RF47,X-Mont LC Tablet,Levocetirizine (5mg) + Montelukast (10mg),W1,3,5,,16.1,21:12,2026-11-21
-RF48,Xynova Gel,Lidocaine (2% w/v),D1,2,4,78.00,6.9,21:13,2026-11-21
-RF49,Yees-D Capsule SR,Domperidone (30mg) + Esomeprazole (40mg),W1,3,6,142.00,14.5,21:13,2026-11-21
-RF50,Yogatel 40 Tablet,Telmisartan (40mg),W1,3,6,64.50,11.8,21:14,2026-11-21
-RF51,Zerodol-SP Tablet,Aceclofenac (100mg) + Paracetamol (325mg) + Serratiopeptidase (15mg),W1,3,7,150.85,20.4,21:14,2026-11-21
-RF52,Zifi 200 Tablet,Cefixime (200mg),W1,3,7,108.90,16.7,21:15,2026-11-21
+item_id,brand_name,salt_compound,strength_form,category,tags,unit_id,row,col,mrp_inr,find_time_sec,observed_at,last_verified,status,notes
+RF01,Atorva Gold 10 Capsule,Aspirin (75mg) + Atorvastatin (10mg) + Clopidogrel (75mg),,,,W1,1,1,97.8,16.4,20:47,2026-11-21,OK,
+RF02,Ampoxin-CV 500mg/125mg Tablet,Amoxycillin (500mg) + Clavulanic Acid (125mg),,,,W1,1,1,198.5,18.2,20:47,2026-11-21,OK,
+RF03,Budamate 100 Transcaps,Formoterol (6mcg) + Budesonide (100mcg),,,,W1,1,2,246,11.5,20:48,2026-11-21,OK,
+RF04,Benxop Face Wash,Benzoyl Peroxide (4% w/w),,,,D1,1,1,235,7.2,20:48,2026-11-21,OK,
+RF05,Crocin Advance 500mg Tablet,Paracetamol (500mg),,,,W1,1,2,19.53,15.8,20:49,2026-11-21,OK,
+RF06,Citralka Liquid,Disodium Hydrogen Citrate (1.53gm/5ml),,,,W1,4,1,128.4,9.6,20:50,2026-11-21,OK,
+RF07,Dolo 156.25mg Suspension,Paracetamol (156.25mg/5ml),,,,W1,4,1,44.2,10.3,20:50,2026-11-21,OK,
+RF08,Duloren 20 Tablet,Duloxetine (20mg),,,,W1,1,3,134,13.1,20:51,2026-11-21,OK,
+RF09,Esofag-D Capsule SR,Domperidone (30mg) + Esomeprazole (40mg),,,,W1,1,4,186.5,14.7,20:51,2026-11-21,OK,
+RF10,Exocast Tablet,Montelukast (10mg) + Fexofenadine (120mg),,,,W1,1,4,164,11.9,20:51,2026-11-21,OK,
+RF11,Febuxor 80 Tablet,Febuxostat (80mg),,,,W1,1,5,178,12.4,20:52,2026-11-21,OK,
+RF12,Fusiwal Cream,Fusidic Acid (2% w/w),,,,D1,1,2,112.5,6.8,20:53,2026-11-21,OK,
+RF13,Glimestar 4 Tablet,Glimepiride (4mg),,,,W1,1,5,86.4,15.2,20:53,2026-11-21,OK,
+RF14,Glaritus 100IU/ml Injection,Insulin Glargine (100IU),,,,F1,1,1,585,5.9,20:54,2026-11-21,OK,
+RF15,Hifenac-MR Tablet,Aceclofenac (100mg) + Paracetamol (325mg) + Chlorzoxazone (500mg),,,,W1,2,5,138.6,14.2,20:54,2026-11-22,OK,
+RF16,Hydroeyes 0.05% Eye Drop,Ciclosporin (0.05% w/v),,,,D1,2,1,442,8.7,20:55,2026-11-21,OK,
+RF17,Inac 50 Tablet,Diclofenac (50mg),,,,W1,2,5,42,11,20:55,2026-11-22,OK,
+RF18,Itrostred 200 Capsule,Itraconazole (200mg),,,,W1,2,1,218,16.9,20:56,2026-11-22,OK,
+RF19,Jonac Gel,Diclofenac (1.16% w/w),,,,D1,1,3,84.5,6.4,20:56,2026-11-21,OK,
+RF20,J-Ring M Forte Tablet ER,Metformin (1000mg) + Teneligliptin (20mg),,,,W1,2,1,172,12.8,20:57,2026-11-22,OK,
+RF21,Kimet XL 50 Tablet,Metoprolol Succinate (47.5mg),,,,W1,2,2,114.8,13.5,20:58,2026-11-22,OK,
+RF22,Kevon Cream,Ketoconazole (2% w/w),,,,D1,1,4,124,7.5,20:58,2026-11-21,OK,
+RF23,Lantus Solostar 100IU/ml Solution for Injection,Insulin Glargine (100IU/ml),,,,F1,2,1,782.39,6.2,20:59,2026-11-21,OK,
+RF24,L-Cin 500 Tablet,Levofloxacin (500mg),,,,W1,2,2,104.5,17.4,20:59,2026-11-22,OK,
+RF25,Moxikind-CV 625 Tablet,Amoxycillin (500mg) + Clavulanic Acid (125mg),,,,W1,2,3,184.14,21.3,21:00,2026-11-22,OK,
+RF26,Metafort 1000 Tablet SR,Metformin (1000mg),,,,W1,2,3,68.2,19.1,21:01,2026-11-22,OK,
+RF27,Nobel MR Tablet,Nimesulide (100mg) + Paracetamol (325mg) + Tizanidine (2mg),,,,W1,2,6,118,12.6,21:01,2026-11-22,OK,
+RF28,Nebi 2.5 Tablet,Nebivolol (2.5mg),,,,W1,2,6,96.5,14.8,21:01,2026-11-22,OK,
+RF29,Obimet Tablet,Metformin (500mg),,,,W1,2,7,39.8,16.5,21:02,2026-11-22,OK,
+RF30,Omnix 50 Dry Syrup,Cefixime (50mg),,,,W1,4,2,62.4,11.2,21:03,2026-11-21,OK,
+RF31,Pregabid ME 75 Capsule,Methylcobalamin (750mcg) + Pregabalin (75mg),,,,W1,2,4,224,22.8,21:03,2026-11-22,OK,
+RF32,Pioglit 30 Tablet,Pioglitazone (30mg),,,,W1,2,4,,18.6,21:04,2026-11-22,OK,
+RF33,Qutan SR 300 Tablet,Quetiapine (300mg),,,,W1,3,4,268,13.9,21:05,2026-11-22,OK,
+RF34,Qdmrd 200 Tablet,Hydroxychloroquine (200mg),,,,W1,3,4,118.5,10.7,21:05,2026-11-22,OK,
+RF35,Razo-D Capsule SR,Domperidone (30mg) + Rabeprazole (20mg),,,,W1,3,1,361,19.4,21:06,2026-11-22,OK,
+RF36,Repace 25 Tablet,Losartan (25mg),,,,W1,3,1,54.6,14.1,21:06,2026-11-22,OK,
+RF37,Solvin LS Syrup,Ambroxol (30mg/5ml) + Levosalbutamol (1mg/5ml) + Guaifenesin (50mg/5ml),,,,W1,4,2,105.19,9.8,21:07,2026-11-21,OK,
+RF38,Softdrops Liquigel,Carboxymethylcellulose (1% w/v),,,,D1,2,2,196,8.1,21:07,2026-11-21,OK,
+RF39,Telmikind 80 Tablet,Telmisartan (80mg),,,,W1,3,2,82.53,17.9,21:08,2026-11-22,OK,
+RF40,Taxim-O CV Dry Syrup,Cefixime (50mg) + Clavulanic Acid (31.25mg),,,,W1,4,3,84,12.3,21:08,2026-11-21,OK,
+RF41,Unistar 75 Capsule,Rosuvastatin (10mg) + Aspirin (75mg),,,,W1,3,5,132,11.6,21:09,2026-11-22,OK,
+RF42,Ultra Gel Eye Drop,Carboxymethylcellulose (1% w/v),,,,D1,2,3,174.5,7.9,21:09,2026-11-21,OK,
+RF43,Viscodyne Syrup Sugar Free,Ambroxol (15mg/15ml) + Guaifenesin (50mg/15ml) + Menthol (2.5mg/15ml) + Terbutaline (1.25mg/15ml),,,,W1,4,3,119,10.4,21:10,2026-11-21,OK,
+RF44,Vobose M 0.2 Tablet SR,Metformin (500mg) + Voglibose (0.2mg),,,,W1,3,5,146.2,15.6,21:11,2026-11-22,OK,
+RF45,Wincold Z Tablet,Cetirizine (5mg) + Paracetamol (500mg) + Phenylephrine (10mg),,,,W1,3,6,48,13.2,21:11,2026-11-22,OK,
+RF46,Wosulin-R 40IU/ml Injection,Human insulin (40IU),,,,F1,3,1,162.8,5.5,21:12,2026-11-21,OK,
+RF47,X-Mont LC Tablet,Levocetirizine (5mg) + Montelukast (10mg),,,,W1,3,6,,16.1,21:12,2026-11-22,OK,
+RF48,Xynova Gel,Lidocaine (2% w/v),,,,D1,2,4,78,6.9,21:13,2026-11-21,OK,
+RF49,Yees-D Capsule SR,Domperidone (30mg) + Esomeprazole (40mg),,,,W1,3,7,142,14.5,21:13,2026-11-22,OK,
+RF50,Yogatel 40 Tablet,Telmisartan (40mg),,,,W1,3,7,64.5,11.8,21:14,2026-11-22,OK,
+RF51,Zerodol-SP Tablet,Aceclofenac (100mg) + Paracetamol (325mg) + Serratiopeptidase (15mg),,,,W1,3,3,150.85,20.4,21:14,2026-11-22,OK,
+RF52,Zifi 200 Tablet,Cefixime (200mg),,,,W1,3,3,108.9,16.7,21:15,2026-11-22,OK,

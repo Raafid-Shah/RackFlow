@@ -1,18 +1,17 @@
-import express from 'express';
-import path from 'path';
-import { THRESHOLDS } from './config/thresholds';
+import { createApp, getLanUrls } from './app';
+import { DEFAULT_DATA_DIR } from './lib/dataStore';
 
 const PORT = Number(process.env.PORT) || 3000;
 const HOST = '0.0.0.0';
-const DATA_DIR = path.resolve(__dirname, '..', '..', 'data');
 
-const app = express();
-
-app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, dataDir: DATA_DIR, thresholds: THRESHOLDS });
-});
+const app = createApp({ dataDir: DEFAULT_DATA_DIR });
 
 app.listen(PORT, HOST, () => {
-  console.log(`RackFlow scaffold server listening on http://${HOST}:${PORT}`);
-  console.log(`Data dir: ${DATA_DIR}`);
+  const lanUrls = getLanUrls(PORT);
+  console.log(`\nRackFlow LAN Server ready (offline-first)`);
+  console.log(`  Local:    http://localhost:${PORT}`);
+  for (const url of lanUrls) {
+    console.log(`  Shop WiFi: ${url}`);
+  }
+  console.log(`  Data dir: ${DEFAULT_DATA_DIR}\n`);
 });

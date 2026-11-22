@@ -22,6 +22,7 @@ import {
   shiftRowColumns,
   swapContainers,
   updateItem,
+  validateLayoutUpdate,
 } from './lib/mutations';
 import { buildSearchIndex, SearchIndex, searchItems } from './lib/searchEngine';
 import {
@@ -361,6 +362,27 @@ export function createApp(options: AppOptions = {}): Express {
     });
   });
 
+  app.put('/api/layout', requireModerator, (req: Request, res: Response) => {
+    const state = getState();
+    const validated = validateLayoutUpdate(req.body?.units, state.data.items);
+    store.writeLayout(validated);
+    const next = getState(true);
+
+    const orderSummary = validated.map((u) => `${u.unit_id}(${u.walk_order})`).join(' → ');
+    audit.append({
+      actor: readActorName(req),
+      role: 'moderator',
+      action: 'UPDATE_LAYOUT',
+      summary: `Updated shop layout: ${orderSummary}`,
+      meta: { units: validated.map((u) => ({ unit_id: u.unit_id, walk_order: u.walk_order, row_widths: u.row_widths })) },
+    });
+
+    res.json({
+      layout: next.data.layout,
+      orderSummary,
+    });
+  });
+
   app.post('/api/import', requireModerator, (req: Request, res: Response) => {
     const csvText = typeof req.body?.csvText === 'string' ? req.body.csvText : '';
     const skipDuplicates = req.body?.skipDuplicates !== false;
@@ -425,6 +447,8 @@ export function createApp(options: AppOptions = {}): Express {
       }
       res.sendFile(path.join(clientDistDir, 'index.html'));
     });
+  } else {
+    console.warn(`[RackFlow] Client bundle not found at ${clientDistDir} — run "npm run build" first.`);
   }
 
   // --- Centralized Error Handler (never crashes LAN server) ---

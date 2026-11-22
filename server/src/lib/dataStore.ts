@@ -302,6 +302,11 @@ export class DataStore {
     this.writeCsvText(itemsToCsv(items));
     return { snapshot };
   }
+  
+  writeLayout(units: readonly UnitLayout[]): void {
+    fs.mkdirSync(this.dataDir, { recursive: true });
+    writeFileAtomic(this.layoutPath, JSON.stringify({ units }, null, 2) + '\n');
+  }
 
   restoreLatestBackup(): string | null {
     const all = this.listBackups();

@@ -13,6 +13,7 @@ import {
   Unlock,
   X,
 } from 'lucide-angular';
+import { ModeratorOpsComponent } from './components/moderator-ops.component';
 import { PickSlipComponent } from './components/pick-slip.component';
 import { RackMiniMapComponent } from './components/rack-mini-map.component';
 import { SearchBoardComponent } from './components/search-board.component';
@@ -27,6 +28,7 @@ type WorkspaceTab = 'lookup' | 'map' | 'ops';
     SearchBoardComponent,
     PickSlipComponent,
     RackMiniMapComponent,
+    ModeratorOpsComponent,
   ],
   template: `
     <div class="min-h-screen bg-bg text-fg">
@@ -192,23 +194,7 @@ type WorkspaceTab = 'lookup' | 'map' | 'ops';
             </div>
           </div>
         } @else {
-          <section class="rounded-xl border border-line bg-surface p-6">
-            <h2 class="text-base font-bold text-fg">Moderator Operations Console</h2>
-            <p class="mt-1 text-sm text-muted">
-              Stage 7 plugs into this tab: Move / Swap / Shift-Right (Col K → Col 1), Bottleneck &amp; Salt Scatter Radar, Lazy-Slotting Distributor Import, and Audit Trail.
-            </p>
-            <div class="mt-4 flex flex-wrap gap-3 font-mono text-xs">
-              <span class="rf-pill-warn rounded-lg px-3 py-1.5">
-                Flagged Not Here: {{ store.flaggedCount() }}
-              </span>
-              <span class="rf-pill-amber rounded-lg px-3 py-1.5">
-                Unslotted Inbox: {{ store.unassignedCount() }}
-              </span>
-              <span class="rf-pill-ok rounded-lg px-3 py-1.5">
-                Undo Snapshots: {{ store.backupCount() }}
-              </span>
-            </div>
-          </section>
+          <rf-moderator-ops (requestUnlock)="openPinModal()" />
         }
 
         <footer class="mt-8 border-t border-line pt-4 text-[11px] text-muted">
@@ -236,7 +222,7 @@ type WorkspaceTab = 'lookup' | 'map' | 'ops';
               </button>
             </div>
             <p class="mt-1 text-xs text-muted">
-              Required for shelf moves, container swaps, row shifts, CSV imports, and Undo.
+              Required for shelf moves, container swaps, row shifts, layout edits, CSV imports, and Undo.
             </p>
             @if (store.config()?.pinHint; as hint) {
               <p class="mt-2 font-mono text-xs text-amber">Demo PIN hint: {{ hint }}</p>
