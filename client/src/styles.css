@@ -1,0 +1,99 @@
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/600.css';
+@import '@fontsource/inter/700.css';
+@import '@fontsource/jetbrains-mono/500.css';
+@import '@fontsource/jetbrains-mono/700.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root,
+[data-theme='dark'] {
+  --bg: #0b0f14;
+  --surface: #141a22;
+  --surface-elevated: #1b2430;
+  --fg: #e5e7eb;
+  --muted: #94a3b8;
+  --border: #243040;
+  --amber: #f59e0b;
+  --amber-soft: rgba(245, 158, 11, 0.14);
+  --amber-ring: rgba(245, 158, 11, 0.45);
+  --green: #22c55e;
+  --green-soft: rgba(34, 197, 94, 0.14);
+  --green-ring: rgba(34, 197, 94, 0.45);
+  --red: #ef4444;
+  --red-soft: rgba(239, 68, 68, 0.14);
+  --red-ring: rgba(239, 68, 68, 0.45);
+}
+
+[data-theme='light'] {
+  --bg: #f5f5f4;
+  --surface: #ffffff;
+  --surface-elevated: #fafaf9;
+  --fg: #1c1917;
+  --muted: #57534e;
+  --border: #d6d3d1;
+  --amber: #d97706;
+  --amber-soft: rgba(217, 119, 6, 0.12);
+  --amber-ring: rgba(217, 119, 6, 0.4);
+  --green: #15803d;
+  --green-soft: rgba(21, 128, 61, 0.12);
+  --green-ring: rgba(21, 128, 61, 0.4);
+  --red: #dc2626;
+  --red-soft: rgba(220, 38, 38, 0.12);
+  --red-ring: rgba(220, 38, 38, 0.4);
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: Inter, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.rf-elevated {
+  background: var(--surface-elevated);
+}
+
+.rf-pill-amber {
+  background: var(--amber-soft);
+  color: var(--amber);
+  border: 1px solid var(--amber-ring);
+}
+
+.rf-pill-ok {
+  background: var(--green-soft);
+  color: var(--green);
+  border: 1px solid var(--green-ring);
+}
+
+.rf-pill-warn {
+  background: var(--red-soft);
+  color: var(--red);
+  border: 1px solid var(--red-ring);
+}
+
+@keyframes rfPulseAmber {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 var(--amber-ring);
+  }
+  50% {
+    box-shadow: 0 0 0 6px transparent;
+  }
+}
+
+.rf-spotlight {
+  background: var(--amber-soft);
+  border-color: var(--amber) !important;
+  animation: rfPulseAmber 1.8s ease-in-out infinite;
+}
+
+.rf-route-cell {
+  background: var(--green-soft);
+  border-color: var(--green) !important;
+}
